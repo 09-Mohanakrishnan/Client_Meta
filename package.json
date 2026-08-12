@@ -1,0 +1,12 @@
+{
+  "name": "client-meta-root",
+  "version": "1.0.0",
+  "description": "Meta Ads Manager Clone Root Package",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "cd server && npm run dev",
+    "build": "cd client && npm run build"
+  }
+}
