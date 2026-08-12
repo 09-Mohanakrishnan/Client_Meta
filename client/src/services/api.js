@@ -1,7 +1,18 @@
 import axios from 'axios';
 
+const rawBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+// Normalize baseURL so it always ends with /api regardless of trailing slashes
+const getNormalizedBaseURL = (url) => {
+  let cleanUrl = url.trim().replace(/\/+$/, '');
+  if (!cleanUrl.endsWith('/api')) {
+    cleanUrl += '/api';
+  }
+  return cleanUrl;
+};
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: getNormalizedBaseURL(rawBaseURL),
 });
 
 // Request interceptor to attach JWT token
