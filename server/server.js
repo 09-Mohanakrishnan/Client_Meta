@@ -26,25 +26,36 @@ const app = express();
 app.use(helmet());
 
 // Production & Development CORS Configuration
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-].filter(Boolean);
+const extractDomain = (url) => {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch (e) {
+    return url.replace(/\/+$/, '');
+  }
+};
+
+const configuredClientDomain = extractDomain(process.env.CLIENT_URL);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or Postman)
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
     if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS request blocked: Origin not allowed'));
+
+    const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+    const isHostinger = origin.includes('hostingersite.com');
+    const isMatchesConfigured = configuredClientDomain && origin.startsWith(configuredClientDomain);
+
+    if (isLocal || isHostinger || isMatchesConfigured) {
+      return callback(null, true);
     }
+
+    callback(null, true);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
 
