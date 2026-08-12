@@ -62,6 +62,20 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Meta Ads Manager Backend API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      campaigns: '/api/campaigns',
+    },
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date() });
