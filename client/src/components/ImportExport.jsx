@@ -121,8 +121,14 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
         { key: 'campaignId', synonyms: ['campaignid', 'campaign', 'parentcampaignid', 'campaignuuid'] },
         { key: 'adSetId', synonyms: ['adsetid', 'adset', 'parentadsetid', 'adsetuuid'] },
         { key: 'adId', synonyms: ['adid', 'ad', 'aduuid'] },
-        { key: 'name', synonyms: ['name', 'campaignname', 'adsetname', 'adname'] },
-        { key: 'status', synonyms: ['status', 'delivery'] }
+        { key: 'status', synonyms: ['status'] },
+        {
+          key: 'name',
+          synonyms: 
+            entityType === 'campaign' ? ['name', 'campaignname', 'campaign'] :
+            entityType === 'adset' ? ['name', 'adsetname', 'adset'] :
+            ['name', 'adname', 'ad']
+        }
       ];
 
       structuralFields.forEach((field) => {
@@ -132,6 +138,12 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
           }
         });
       });
+
+      console.log('CSV Import Debug:');
+      console.log('- Entity type:', entityType);
+      console.log('- Raw headers:', rawHeaders);
+      console.log('- Normalized headers:', rawHeadersNormalized);
+      console.log('- Final header map:', headerMap);
 
       const parsedItems = [];
       for (let i = 1; i < rawRows.length; i++) {
