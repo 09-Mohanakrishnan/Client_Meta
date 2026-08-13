@@ -15,12 +15,12 @@ const adSchema = new mongoose.Schema(
     },
     adSetId: {
       type: String,
-      required: true,
+      required: false,
       index: true,
     },
     campaignId: {
       type: String,
-      required: true,
+      required: false,
       index: true,
     },
     delivery: {

@@ -15,7 +15,7 @@ const adSetSchema = new mongoose.Schema(
     },
     campaignId: {
       type: String,
-      required: true,
+      required: false,
       index: true,
     },
     delivery: {

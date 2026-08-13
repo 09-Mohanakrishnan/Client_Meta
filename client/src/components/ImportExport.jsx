@@ -45,7 +45,7 @@ export const exportToCSV = (data, columns, filename) => {
 const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) => {
   const queryClient = useQueryClient();
   const [showImportModal, setShowImportModal] = useState(false);
-  const [previewData, setPreviewData] = useState({ valid: [], invalid: [], duplicates: [] });
+  const [previewData, setPreviewData] = useState({ valid: [], invalid: [], duplicates: [], warnings: [] });
   const [isImporting, setIsImporting] = useState(false);
 
   // Custom JS CSV Parser
@@ -118,10 +118,14 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
 
       // Structural/linking keys synonyms fallback (since campaignId/adSetId are not visible columns)
       const structuralFields = [
-        { key: 'campaignId', synonyms: ['campaignid', 'campaign', 'parentcampaignid', 'campaignuuid'] },
-        { key: 'adSetId', synonyms: ['adsetid', 'adset', 'parentadsetid', 'adsetuuid'] },
-        { key: 'adId', synonyms: ['adid', 'ad', 'aduuid'] },
+        { key: 'campaignId', synonyms: ['campaignid', 'parentcampaignid', 'campaignuuid'] },
+        { key: 'campaignName', synonyms: ['campaignname', 'campaign'] },
+        { key: 'adSetId', synonyms: ['adsetid', 'parentadsetid', 'adsetuuid'] },
+        { key: 'adSetName', synonyms: ['adsetname', 'adset'] },
+        { key: 'adId', synonyms: ['adid', 'aduuid'] },
         { key: 'status', synonyms: ['status'] },
+        { key: 'image', synonyms: ['image', 'imageurl', 'img', 'thumbnail', 'creativeurl', 'imagepreview', 'previewurl', 'previewlink', 'mediaurl', 'medialink', 'creative'] },
+        { key: 'video', synonyms: ['video', 'videourl', 'vid', 'media', 'videolink', 'videopreview', 'videolink'] },
         {
           key: 'name',
           synonyms: 
@@ -176,6 +180,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       const valid = [];
       const invalid = [];
       const duplicates = [];
+      const warnings = [];
 
       const existingIds = new Set(existingItems.map((item) => 
         entityType === 'campaign' ? item.campaignId : entityType === 'adset' ? item.adSetId : item.adId
@@ -191,15 +196,17 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
           return;
         }
 
-        if (entityType === 'adset' && !item.campaignId) {
-          invalid.push({ item, reason: `Row ${rowNum}: 'campaignId' is required for ad sets` });
-          return;
+        // Soft validation warnings for relationship fields (allowing dynamic matching later)
+        let isWarning = false;
+        if (entityType === 'adset' && !item.campaignId && !item.campaignName) {
+          warnings.push({ item, reason: `Row ${rowNum}: Unresolved Campaign relationship (Campaign ID or Name is missing)` });
+          isWarning = true;
         }
 
         if (entityType === 'ad') {
-          if (!item.adSetId || !item.campaignId) {
-            invalid.push({ item, reason: `Row ${rowNum}: 'adSetId' and 'campaignId' are required for ads` });
-            return;
+          if ((!item.adSetId && !item.adSetName) || (!item.campaignId && !item.campaignName)) {
+            warnings.push({ item, reason: `Row ${rowNum}: Unresolved parent relationships (Campaign or Ad Set ID/Name is missing)` });
+            isWarning = true;
           }
         }
 
@@ -214,15 +221,35 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
           seenIds.add(itemUniqueId);
         }
 
-        valid.push(item);
+        if (!isWarning) {
+          valid.push(item);
+        }
       });
 
-      setPreviewData({ valid, invalid, duplicates });
+      setPreviewData({ valid, invalid, duplicates, warnings });
       setShowImportModal(true);
       e.target.value = null; // Clear file input
     };
 
     reader.readAsText(file);
+  };
+
+  const handleImportAnyway = async () => {
+    setIsImporting(true);
+    try {
+      const allItems = [...previewData.valid, ...previewData.warnings.map(w => w.item)];
+      const res = await API.post(`/${entityType}s/import`, allItems);
+      if (res.data.success) {
+        toast.success(res.data.message || `Imported ${allItems.length} items successfully`);
+        queryClient.invalidateQueries({ queryKey: [entityType === 'adset' ? 'adsets' : `${entityType}s`] });
+        if (onImportSuccess) onImportSuccess();
+        setShowImportModal(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Bulk import anyway failed. Please verify CSV formatting.');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleImportSubmit = async () => {
@@ -283,7 +310,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
             </div>
 
             {/* Validation Breakdown Cards */}
-            <div className="grid grid-cols-3 gap-3 p-6 pb-2">
+            <div className={`grid ${entityType === 'campaign' ? 'grid-cols-3' : 'grid-cols-4'} gap-3 p-6 pb-2`}>
               <div className="rounded-lg border border-green-200 bg-green-50/30 p-3 flex flex-col items-center">
                 <CheckCircle size={20} className="text-green-600 mb-1" />
                 <span className="text-lg font-bold text-green-700">{previewData.valid.length}</span>
@@ -294,6 +321,13 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
                 <span className="text-lg font-bold text-yellow-700">{previewData.duplicates.length}</span>
                 <span className="text-[10px] font-semibold text-yellow-600 uppercase">Duplicate Rows</span>
               </div>
+              {entityType !== 'campaign' && (
+                <div className="rounded-lg border border-amber-250 bg-amber-50/20 p-3 flex flex-col items-center">
+                  <AlertTriangle size={20} className="text-amber-600 mb-1" />
+                  <span className="text-lg font-bold text-amber-700">{previewData.warnings?.length || 0}</span>
+                  <span className="text-[10px] font-semibold text-amber-600 uppercase">Unresolved Ref</span>
+                </div>
+              )}
               <div className="rounded-lg border border-red-200 bg-red-50/30 p-3 flex flex-col items-center">
                 <AlertOctagon size={20} className="text-red-600 mb-1" />
                 <span className="text-lg font-bold text-red-700">{previewData.invalid.length}</span>
@@ -304,12 +338,15 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
             {/* Logs & Errors */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-xs">
               {/* Warnings / Errors */}
-              {(previewData.invalid.length > 0 || previewData.duplicates.length > 0) && (
+              {(previewData.invalid.length > 0 || previewData.duplicates.length > 0 || (previewData.warnings && previewData.warnings.length > 0)) && (
                 <div className="rounded-md bg-yellow-50/50 border border-yellow-200 p-3.5 text-gray-700 space-y-1.5">
-                  <h4 className="font-bold text-yellow-800 text-[11px] uppercase tracking-wider">Formatting warnings ({previewData.invalid.length + previewData.duplicates.length})</h4>
+                  <h4 className="font-bold text-yellow-800 text-[11px] uppercase tracking-wider">Formatting warnings ({previewData.invalid.length + previewData.duplicates.length + (previewData.warnings?.length || 0)})</h4>
                   <ul className="list-disc pl-4 space-y-1 text-[11px] font-medium text-gray-600">
                     {previewData.invalid.map((item, idx) => (
                       <li key={`inv-${idx}`} className="text-red-600">{item.reason}</li>
+                    ))}
+                    {previewData.warnings?.map((item, idx) => (
+                      <li key={`warn-${idx}`} className="text-amber-600">{item.reason}</li>
                     ))}
                     {previewData.duplicates.map((item, idx) => (
                       <li key={`dup-${idx}`} className="text-yellow-700">{item.reason}</li>
@@ -357,6 +394,15 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
               >
                 Cancel
               </button>
+              {previewData.warnings?.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleImportAnyway}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors shadow-sm"
+                >
+                  Import anyway
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleImportSubmit}

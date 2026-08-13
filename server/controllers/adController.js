@@ -1,4 +1,6 @@
 import Ad from '../models/Ad.js';
+import AdSet from '../models/AdSet.js';
+import Campaign from '../models/Campaign.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -304,21 +306,114 @@ export const importAds = async (req, res) => {
   }
 
   try {
-    const bulkOps = adsList.map((item) => {
+    // 1. Resolve campaignId and adSetId by names
+    const campaignNames = [...new Set(adsList.map(item => item.campaignName || item.campaign).filter(Boolean))];
+    const adSetNames = [...new Set(adsList.map(item => item.adSetName || item.adSet).filter(Boolean))];
+
+    const campaigns = await Campaign.find({ name: { $in: campaignNames } });
+    const campaignMap = new Map(campaigns.map(c => [c.name.toLowerCase(), c.campaignId]));
+    const campaignNameIdMap = new Map(campaigns.map(c => [c.name.toLowerCase(), c._id]));
+
+    const adSets = await AdSet.find({ name: { $in: adSetNames } });
+    const adSetMap = new Map(adSets.map(s => [s.name.toLowerCase(), s.adSetId]));
+    const adSetNameIdMap = new Map(adSets.map(s => [s.name.toLowerCase(), s._id]));
+
+    const bulkOps = [];
+    for (const item of adsList) {
+      let campaignId = item.campaignId;
+      let campaignObjectId = undefined;
+      let adSetId = item.adSetId;
+      let adSetObjectId = undefined;
+      const cName = item.campaignName || item.campaign;
+      const sName = item.adSetName || item.adSet;
+
+      // Try to resolve campaignId by Campaign Name from DB
+      if (!campaignId && cName) {
+        campaignId = campaignMap.get(cName.toLowerCase());
+        campaignObjectId = campaignNameIdMap.get(cName.toLowerCase());
+      }
+
+      // If campaignId is provided, resolve the Campaign object to get its _id
+      if (campaignId) {
+        const exists = await Campaign.findOne({ campaignId });
+        if (exists) {
+          campaignObjectId = exists._id;
+        } else if (cName) {
+          const resolvedId = campaignMap.get(cName.toLowerCase());
+          if (resolvedId) {
+            campaignId = resolvedId;
+            campaignObjectId = campaignNameIdMap.get(cName.toLowerCase());
+          }
+        }
+      }
+
+      // Try to resolve adSetId by Ad Set Name from DB
+      if (!adSetId && sName) {
+        adSetId = adSetMap.get(sName.toLowerCase());
+        adSetObjectId = adSetNameIdMap.get(sName.toLowerCase());
+      }
+
+      // If adSetId is provided, resolve the AdSet object to get its _id
+      if (adSetId) {
+        const exists = await AdSet.findOne({ adSetId });
+        if (exists) {
+          adSetObjectId = exists._id;
+        } else if (sName) {
+          const resolvedId = adSetMap.get(sName.toLowerCase());
+          if (resolvedId) {
+            adSetId = resolvedId;
+            adSetObjectId = adSetNameIdMap.get(sName.toLowerCase());
+          }
+        }
+      }
+
+      // Dynamic Auto-creation of Campaign to preserve relationship
+      if (!campaignId && cName) {
+        campaignId = generateUniqueId('CAM');
+        const newCampaign = await Campaign.create({
+          name: cName,
+          campaignId,
+          status: 'Draft',
+        });
+        campaignObjectId = newCampaign._id;
+        campaignMap.set(cName.toLowerCase(), campaignId);
+        campaignNameIdMap.set(cName.toLowerCase(), newCampaign._id);
+      }
+
+      // Dynamic Auto-creation of Ad Set to preserve relationship
+      if (!adSetId && sName) {
+        adSetId = generateUniqueId('SET');
+        const newAdSet = await AdSet.create({
+          name: sName,
+          adSetId,
+          campaignId: campaignId || generateUniqueId('CAM'),
+          status: 'Draft',
+        });
+        adSetObjectId = newAdSet._id;
+        adSetMap.set(sName.toLowerCase(), adSetId);
+        adSetNameIdMap.set(sName.toLowerCase(), newAdSet._id);
+      }
+
+
       const adId = item.adId || generateUniqueId('AD');
       const updateData = {
         ...item,
         adId,
+        adSetId,
+        adSetObjectId,
+        campaignId,
+        campaignObjectId,
         status: item.status || 'Draft',
       };
-      return {
+
+      bulkOps.push({
         updateOne: {
           filter: { adId },
           update: { $set: updateData },
           upsert: true,
         },
-      };
-    });
+      });
+    }
 
     const result = await Ad.bulkWrite(bulkOps);
     const count = bulkOps.length;

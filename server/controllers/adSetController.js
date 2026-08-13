@@ -1,5 +1,6 @@
 import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
+import Campaign from '../models/Campaign.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -305,21 +306,71 @@ export const importAdSets = async (req, res) => {
   }
 
   try {
-    const bulkOps = adsetsList.map((item) => {
+    // 1. Resolve campaignId by campaignName or fallback campaign fields
+    const campaignNames = [...new Set(adsetsList.map(item => item.campaignName || item.campaign).filter(Boolean))];
+    const campaigns = await Campaign.find({ name: { $in: campaignNames } });
+    const campaignMap = new Map(campaigns.map(c => [c.name.toLowerCase(), c.campaignId]));
+    const campaignIdMap = new Map(campaigns.map(c => [c.campaignId, c._id]));
+    const campaignNameIdMap = new Map(campaigns.map(c => [c.name.toLowerCase(), c._id]));
+
+    const bulkOps = [];
+    for (const item of adsetsList) {
+      let campaignId = item.campaignId;
+      let campaignObjectId = undefined;
+      const cName = item.campaignName || item.campaign;
+
+      // Try to resolve campaignId by Campaign Name from DB
+      if (!campaignId && cName) {
+        campaignId = campaignMap.get(cName.toLowerCase());
+        campaignObjectId = campaignNameIdMap.get(cName.toLowerCase());
+      }
+
+      // If campaignId is provided, resolve the Campaign object to get its _id
+      if (campaignId) {
+        const exists = await Campaign.findOne({ campaignId });
+        if (exists) {
+          campaignObjectId = exists._id;
+        } else if (cName) {
+          const resolvedId = campaignMap.get(cName.toLowerCase());
+          if (resolvedId) {
+            campaignId = resolvedId;
+            campaignObjectId = campaignNameIdMap.get(cName.toLowerCase());
+          }
+        }
+      }
+
+      // If campaignId still not resolved, create the Campaign dynamically to preserve relationship
+      if (!campaignId && cName) {
+        campaignId = generateUniqueId('CAM');
+        const newCampaign = await Campaign.create({
+          name: cName,
+          campaignId,
+          status: 'Draft',
+        });
+        campaignObjectId = newCampaign._id;
+        campaignMap.set(cName.toLowerCase(), campaignId);
+        campaignIdMap.set(campaignId, newCampaign._id);
+        campaignNameIdMap.set(cName.toLowerCase(), newCampaign._id);
+      }
+
+
       const adSetId = item.adSetId || generateUniqueId('SET');
       const updateData = {
         ...item,
         adSetId,
+        campaignId,
+        campaignObjectId,
         status: item.status || 'Draft',
       };
-      return {
+
+      bulkOps.push({
         updateOne: {
           filter: { adSetId },
           update: { $set: updateData },
           upsert: true,
         },
-      };
-    });
+      });
+    }
 
     const result = await AdSet.bulkWrite(bulkOps);
     const count = bulkOps.length;

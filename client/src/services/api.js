@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-const rawBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const getRawBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  // If a valid production URL is specified in env, use it
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+  // In production browser, if envUrl is localhost or not set, fall back to relative path '/api'
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return '/api';
+  }
+  // Locally, fall back to the dev server port
+  return envUrl || 'http://localhost:5001/api';
+};
+
+const rawBaseURL = getRawBaseURL();
 
 // Normalize baseURL so it always ends with /api regardless of trailing slashes
 const getNormalizedBaseURL = (url) => {

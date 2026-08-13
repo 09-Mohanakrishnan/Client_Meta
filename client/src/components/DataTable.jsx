@@ -250,11 +250,32 @@ const DataTable = ({
             }
 
             const isAd = entityType === 'ad';
-            const imageUrl = row.original.imageUrl;
+            const imageUrl = row.original.image || row.original.imageUrl;
+            const videoUrl = row.original.video || row.original.videoUrl;
 
             return (
               <div style={{ display: 'flex', alignItems: 'center', maxWidth: '300px', padding: '0 4px' }}>
-                {isAd && imageUrl && (
+                {isAd && videoUrl && (
+                  <video 
+                    src={videoUrl}
+                    muted
+                    loop
+                    playsInline
+                    onMouseEnter={(e) => {
+                      e.target.play().catch(() => {});
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.pause();
+                      e.target.currentTime = 0;
+                    }}
+                    style={{
+                      width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px',
+                      marginRight: '8px', border: '1px solid #e4e6eb', flexShrink: 0,
+                      backgroundColor: '#000', cursor: 'pointer'
+                    }}
+                  />
+                )}
+                {isAd && !videoUrl && imageUrl && (
                   <img src={imageUrl} alt="" style={{
                     width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px',
                     marginRight: '8px', border: '1px solid #e4e6eb', flexShrink: 0,
