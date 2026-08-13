@@ -461,7 +461,7 @@ const DataTable = ({
                   {row.getVisibleCells().map(cell => {
                     const isAlternateRow = rowIdx % 2 === 1;
                     const isSelected = row.getIsSelected();
-                    const bgColor = isSelected ? '#e7f3ff' : (isAlternateRow ? '#f9fafb' : '#ffffff');
+                    const bgColor = isSelected ? '#e7f3ff' : (isAlternateRow ? '#f2f3f5' : '#ffffff');
                     return (
                       <td key={cell.id} style={{ backgroundColor: bgColor }}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
