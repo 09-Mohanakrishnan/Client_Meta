@@ -76,10 +76,21 @@ const AdsManagerNavigation = ({ activeLevel, searchInput, setSearchInput, status
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button style={{
-            padding: '5px 14px', fontSize: '13px', fontWeight: 600,
-            backgroundColor: '#42b72a', color: '#fff', border: 'none',
-            borderRadius: '6px', cursor: 'pointer',
-          }}>
+            padding: '6px 12px',
+            fontFamily: 'var(--meta-font)',
+            fontSize: '14px',
+            fontWeight: 500,
+            lineHeight: '20px',
+            backgroundColor: '#0866ff',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'background-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.target.style.backgroundColor = '#0056d6'; }}
+          onMouseLeave={(e) => { e.target.style.backgroundColor = '#0866ff'; }}
+          >
             Create a view
           </button>
           <button style={{
