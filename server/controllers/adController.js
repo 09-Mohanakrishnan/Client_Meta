@@ -46,18 +46,33 @@ export const getAds = async (req, res) => {
       }
     }
 
-    // 3. Date Range Filter (CreatedAt) — uses explicit UTC to avoid server timezone issues
+    // 3. Date Range Filter
     if (req.query.startDate && req.query.endDate) {
-      const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
-      const [ey, em, ed] = req.query.endDate.split('-').map(Number);
+      if (!req.query.campaignId && !req.query.adSetId) {
+        const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
+        const [ey, em, ed] = req.query.endDate.split('-').map(Number);
+        const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
+        const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
 
-      const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
-      const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
-
-      query.createdAt = {
-        $gte: startUTC,
-        $lte: endUTC,
-      };
+        query.$or = [
+          {
+            reportingStarts: { $lte: req.query.endDate },
+            reportingEnds: { $gte: req.query.startDate },
+          },
+          {
+            createdAt: { $gte: startUTC, $lte: endUTC },
+          },
+          {
+            reportingStarts: { $exists: false },
+          },
+          {
+            reportingStarts: null,
+          },
+          {
+            reportingStarts: '',
+          },
+        ];
+      }
     }
 
     // 4. Advanced Filters

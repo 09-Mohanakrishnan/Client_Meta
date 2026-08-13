@@ -39,10 +39,23 @@ export const getCampaigns = async (req, res) => {
       }
     }
 
-    // 3. Date Range Filter (reportingStarts/reportingEnds)
+    // 3. Date Range Filter (reportingStarts/reportingEnds with fallback for undated campaigns)
     if (req.query.startDate && req.query.endDate) {
-      query.reportingStarts = { $lte: req.query.endDate };
-      query.reportingEnds = { $gte: req.query.startDate };
+      query.$or = [
+        {
+          reportingStarts: { $lte: req.query.endDate },
+          reportingEnds: { $gte: req.query.startDate },
+        },
+        {
+          reportingStarts: { $exists: false },
+        },
+        {
+          reportingStarts: null,
+        },
+        {
+          reportingStarts: '',
+        },
+      ];
     }
 
     // 4. Advanced Filters

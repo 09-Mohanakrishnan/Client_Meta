@@ -2,18 +2,32 @@ import Campaign from '../models/Campaign.js';
 import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
 
-// Helper: build a createdAt date filter from YYYY-MM-DD query strings (UTC-safe)
+// Helper: build date filter supporting reporting dates, ad set dates, or createdAt
 const buildDateFilter = (startDate, endDate) => {
   if (!startDate || !endDate) return {};
 
   const [sy, sm, sd] = startDate.split('-').map(Number);
   const [ey, em, ed] = endDate.split('-').map(Number);
+  const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
+  const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
 
   return {
-    createdAt: {
-      $gte: new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0)),
-      $lte: new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999)),
-    },
+    $or: [
+      {
+        reportingStarts: { $lte: endDate },
+        reportingEnds: { $gte: startDate },
+      },
+      {
+        startDate: { $lte: endDate },
+        endDate: { $gte: startDate },
+      },
+      {
+        createdAt: { $gte: startUTC, $lte: endUTC },
+      },
+      {
+        reportingStarts: { $exists: false },
+      },
+    ],
   };
 };
 
