@@ -360,6 +360,26 @@ const DataTable = ({
     manualPagination: true,
   });
 
+  const reachSum = useMemo(() => {
+    if (!data) return 0;
+    return data.reduce((sum, item) => sum + (Number(item.reach) || 0), 0);
+  }, [data]);
+
+  const impressionsSum = useMemo(() => {
+    if (!data) return 0;
+    return data.reduce((sum, item) => sum + (Number(item.impressions) || 0), 0);
+  }, [data]);
+
+  const amountSpentSum = useMemo(() => {
+    if (!data) return 0;
+    return data.reduce((sum, item) => sum + (Number(item.amountSpent) || 0), 0);
+  }, [data]);
+
+  const frequencyWeighted = useMemo(() => {
+    if (reachSum === 0) return 0;
+    return impressionsSum / reachSum;
+  }, [reachSum, impressionsSum]);
+
   const entityLabel = entityType === 'campaign' ? 'campaigns' : entityType === 'adset' ? 'ad sets' : 'ads';
 
   if (isLoading) {
@@ -381,23 +401,6 @@ const DataTable = ({
       </div>
     );
   }
-
-  const reachSum = useMemo(() => {
-    return data.reduce((sum, item) => sum + (Number(item.reach) || 0), 0);
-  }, [data]);
-
-  const impressionsSum = useMemo(() => {
-    return data.reduce((sum, item) => sum + (Number(item.impressions) || 0), 0);
-  }, [data]);
-
-  const amountSpentSum = useMemo(() => {
-    return data.reduce((sum, item) => sum + (Number(item.amountSpent) || 0), 0);
-  }, [data]);
-
-  const frequencyWeighted = useMemo(() => {
-    if (reachSum === 0) return 0;
-    return impressionsSum / reachSum;
-  }, [reachSum, impressionsSum]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#fff', overflow: 'hidden', flex: 1 }}>
