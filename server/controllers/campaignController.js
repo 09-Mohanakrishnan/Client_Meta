@@ -39,18 +39,17 @@ export const getCampaigns = async (req, res) => {
       }
     }
 
-    // 3. Date Range Filter (CreatedAt)
+    // 3. Date Range Filter (CreatedAt) — uses explicit UTC to avoid server timezone issues
     if (req.query.startDate && req.query.endDate) {
-      const start = new Date(req.query.startDate);
-      start.setHours(0, 0, 0, 0);
+      const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
+      const [ey, em, ed] = req.query.endDate.split('-').map(Number);
 
-      const end = new Date(req.query.endDate);
-      end.setHours(23, 59, 59, 999);
-      end.setDate(end.getDate() + 1); // Buffer +1 day for timezone safety
+      const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
+      const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
 
       query.createdAt = {
-        $gte: start,
-        $lte: end,
+        $gte: startUTC,
+        $lte: endUTC,
       };
     }
 
