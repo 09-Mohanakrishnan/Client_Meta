@@ -3,13 +3,22 @@ import React, { createContext, useContext, useState } from 'react';
 const DateRangeContext = createContext(null);
 
 export const DateRangeProvider = ({ children }) => {
+  const getToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getPastDate = (days) => {
     const d = new Date();
     d.setDate(d.getDate() - days);
-    return d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
-
-  const getToday = () => new Date().toISOString().split('T')[0];
 
   const [dateRange, setDateRange] = useState({
     startDate: getPastDate(30), // Default to last 30 days

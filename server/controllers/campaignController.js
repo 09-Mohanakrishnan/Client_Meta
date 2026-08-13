@@ -41,10 +41,15 @@ export const getCampaigns = async (req, res) => {
 
     // 3. Date Range Filter (CreatedAt)
     if (req.query.startDate && req.query.endDate) {
+      const start = new Date(req.query.startDate);
+      start.setHours(0, 0, 0, 0);
+
       const end = new Date(req.query.endDate);
       end.setHours(23, 59, 59, 999);
+      end.setDate(end.getDate() + 1); // Buffer +1 day for timezone safety
+
       query.createdAt = {
-        $gte: new Date(req.query.startDate),
+        $gte: start,
         $lte: end,
       };
     }
