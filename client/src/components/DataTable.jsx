@@ -240,7 +240,7 @@ const DataTable = ({
             );
           }
 
-          // NAME - blue clickable link
+          // NAME - blue clickable link matching FB Ads Manager styles exactly
           if (col.key === 'name') {
             let drilldownPath = '';
             if (entityType === 'campaign') {
@@ -265,7 +265,7 @@ const DataTable = ({
                     <Link to={drilldownPath}
                       onClick={(e) => e.stopPropagation()}
                       style={{
-                        color: '#1877f2', fontWeight: 500, fontSize: '12px',
+                        color: '#1461cc', fontWeight: 400, fontSize: '14px', lineHeight: '20px',
                         textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap', display: 'block',
                       }}
@@ -275,7 +275,7 @@ const DataTable = ({
                       {val}
                     </Link>
                   ) : (
-                    <span style={{ color: '#1877f2', fontWeight: 500, fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                    <span style={{ color: '#1461cc', fontWeight: 400, fontSize: '14px', lineHeight: '20px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                       {val}
                     </span>
                   )}
