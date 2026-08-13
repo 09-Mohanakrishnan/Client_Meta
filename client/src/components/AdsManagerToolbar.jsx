@@ -37,6 +37,21 @@ const AdsManagerToolbar = ({
           <span>Duplicate</span>
         </button>
 
+        {/* Delete (SUPER_ADMIN) */}
+        {hasRole(['SUPER_ADMIN']) && selectedCount > 0 && (
+          <button 
+            onClick={onDelete} 
+            style={{ 
+              backgroundColor: '#fa3e3e', color: '#fff', border: 'none', 
+              padding: '5px 12px', borderRadius: '4px', cursor: 'pointer', 
+              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', 
+              fontWeight: 600 
+            }}
+          >
+            <span>Delete ({selectedCount})</span>
+          </button>
+        )}
+
         {/* Edit */}
         <div style={{ position: 'relative' }}>
           <button disabled={!canModify || selectedCount === 0}

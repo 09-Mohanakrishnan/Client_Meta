@@ -12,7 +12,7 @@ export const exportToCSV = (data, columns, filename) => {
   }
 
   const visibleCols = columns.filter((c) => c.visible);
-  
+
   // Create Headers row
   const headers = visibleCols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(',');
 
@@ -23,7 +23,7 @@ export const exportToCSV = (data, columns, filename) => {
       if (cellVal === undefined || cellVal === null) {
         cellVal = '';
       }
-      
+
       // Escape double quotes in CSV cell values
       const escaped = String(cellVal).replace(/"/g, '""');
       return `"${escaped}"`;
@@ -33,7 +33,7 @@ export const exportToCSV = (data, columns, filename) => {
   const csvContent = [headers, ...rows].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  
+
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', `${filename}_export_${new Date().toISOString().split('T')[0]}.csv`);
@@ -99,7 +99,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
         return clean.trim().toLowerCase();
       });
 
-      const rawHeadersNormalized = rawHeaders.map((h) => 
+      const rawHeadersNormalized = rawHeaders.map((h) =>
         h.replace(/[^a-z0-9]/g, '') // Keep only lowercase letters and numbers
       );
 
@@ -108,7 +108,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       columns.forEach((col) => {
         const colKeyNorm = col.key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         const colLabelNorm = col.label.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        
+
         rawHeadersNormalized.forEach((rawNorm, idx) => {
           if (rawNorm === colKeyNorm || rawNorm === colLabelNorm) {
             headerMap[idx] = col.key;
@@ -128,10 +128,10 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
         { key: 'video', synonyms: ['video', 'videourl', 'vid', 'media', 'videolink', 'videopreview', 'videolink'] },
         {
           key: 'name',
-          synonyms: 
+          synonyms:
             entityType === 'campaign' ? ['name', 'campaignname', 'campaign'] :
-            entityType === 'adset' ? ['name', 'adsetname', 'adset'] :
-            ['name', 'adname', 'ad']
+              entityType === 'adset' ? ['name', 'adsetname', 'adset'] :
+                ['name', 'adname', 'ad']
         }
       ];
 
@@ -182,14 +182,14 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       const duplicates = [];
       const warnings = [];
 
-      const existingIds = new Set(existingItems.map((item) => 
+      const existingIds = new Set(existingItems.map((item) =>
         entityType === 'campaign' ? item.campaignId : entityType === 'adset' ? item.adSetId : item.adId
       ));
       const seenIds = new Set();
 
       parsedItems.forEach((item, index) => {
         const rowNum = index + 2;
-        
+
         // 1. Check required fields
         if (!item.name) {
           invalid.push({ item, reason: `Row ${rowNum}: 'name' is required` });
@@ -212,7 +212,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
 
         // 2. Check duplicates (both in existing database items and within the CSV itself)
         const itemUniqueId = entityType === 'campaign' ? item.campaignId : entityType === 'adset' ? item.adSetId : item.adId;
-        
+
         if (itemUniqueId) {
           if (existingIds.has(itemUniqueId) || seenIds.has(itemUniqueId)) {
             duplicates.push({ item, reason: `Row ${rowNum}: ID '${itemUniqueId}' already exists or is a duplicate in CSV` });
@@ -294,7 +294,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       {showImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-2xl flex flex-col max-h-[85vh]">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-155 px-6 py-4 bg-gray-50/50">
               <div className="flex items-center gap-2">

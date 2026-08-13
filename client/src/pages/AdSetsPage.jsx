@@ -272,6 +272,7 @@ const AdSetsPage = () => {
             updateParam('sortOrder', order);
           }}
           onInlineEdit={(id, key, value) => inlineEditMutation.mutate({ id, key, value })}
+          onInlineDelete={(id) => deleteAdSetMutation.mutate(id)}
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows}
           isLoading={isLoading}

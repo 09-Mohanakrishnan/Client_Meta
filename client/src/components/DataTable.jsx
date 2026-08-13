@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { ArrowUpDown, AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { ArrowUpDown, AlertCircle, RefreshCw, Info, Trash2 } from 'lucide-react';
 import InlineEditableCell from './InlineEditableCell';
 import { useAuth } from '../context/AuthContext';
 
@@ -112,8 +112,9 @@ const EditableWrapper = ({ value: initialValue, displayContent, columnKey, colum
 const DataTable = ({
   columns, data, entityType, page, pages, total,
   onPageChange, sortBy, sortOrder, onSortChange, onInlineEdit,
-  selectedRows, onSelectedRowsChange, isLoading, error,
+  selectedRows, onSelectedRowsChange, isLoading, error, onInlineDelete,
 }) => {
+  const { user } = useAuth();
   const tableColumns = useMemo(() => {
     const list = [
       // Checkbox
@@ -301,6 +302,33 @@ const DataTable = ({
                     </span>
                   )}
                 </div>
+                {user?.role === 'SUPER_ADMIN' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Are you sure you want to hard delete this ${entityType}?`)) {
+                        onInlineDelete?.(row.original._id);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      color: '#fa3e3e',
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                      opacity: 0.6,
+                      marginLeft: '8px',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
+                    title={`Delete this ${entityType}`}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             );
           }

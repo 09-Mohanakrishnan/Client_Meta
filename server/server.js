@@ -16,6 +16,9 @@ import columnRoutes from './routes/columnRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import mongoose from 'mongoose';
+import { protect } from './middleware/authMiddleware.js';
+import { authorize } from './middleware/roleMiddleware.js';
 
 // Connect to Database
 connectDB();
@@ -101,6 +104,32 @@ app.use('/api/columns', columnRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
+
+// Settings API Routes
+app.get('/api/settings/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const db = mongoose.connection.db;
+    const settingsCol = db.collection('settings');
+    const doc = await settingsCol.findOne({ key });
+    res.json({ success: true, value: doc ? doc.value : null });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/settings/:key', protect, authorize('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+    const db = mongoose.connection.db;
+    const settingsCol = db.collection('settings');
+    await settingsCol.updateOne({ key }, { $set: { value } }, { upsert: true });
+    res.json({ success: true, message: 'Setting updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // Global Error Handler
 app.use((err, req, res, next) => {
