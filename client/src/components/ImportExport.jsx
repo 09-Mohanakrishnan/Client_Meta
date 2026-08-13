@@ -92,34 +92,42 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
         return;
       }
 
-      // Map header strings to keys
-      const rawHeaders = rawRows[0].map((h) => h.trim().toLowerCase());
-      
+      // Map header strings to keys (strip UTF-8 BOM, strip outer quotes, normalize)
+      const rawHeaders = rawRows[0].map((h) => {
+        let clean = h.replace(/^\ufeff/, ''); // Strip BOM
+        clean = clean.replace(/^["']|["']$/g, ''); // Strip surrounding quotes
+        return clean.trim().toLowerCase();
+      });
+
+      const rawHeadersNormalized = rawHeaders.map((h) => 
+        h.replace(/[^a-z0-9]/g, '') // Keep only lowercase letters and numbers
+      );
+
       // Attempt mapping display labels or keys
       const headerMap = {};
       columns.forEach((col) => {
-        const keyIndex = rawHeaders.indexOf(col.key.toLowerCase());
-        const labelIndex = rawHeaders.indexOf(col.label.toLowerCase());
+        const colKeyNorm = col.key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const colLabelNorm = col.label.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         
-        if (keyIndex !== -1) {
-          headerMap[keyIndex] = col.key;
-        } else if (labelIndex !== -1) {
-          headerMap[labelIndex] = col.key;
-        }
+        rawHeadersNormalized.forEach((rawNorm, idx) => {
+          if (rawNorm === colKeyNorm || rawNorm === colLabelNorm) {
+            headerMap[idx] = col.key;
+          }
+        });
       });
 
       // Structural/linking keys synonyms fallback (since campaignId/adSetId are not visible columns)
       const structuralFields = [
-        { key: 'campaignId', synonyms: ['campaignid', 'campaign id', 'campaign_id', 'parent campaign id', 'campaign'] },
-        { key: 'adSetId', synonyms: ['adsetid', 'ad set id', 'ad_set_id', 'parent ad set id', 'adset', 'ad set'] },
-        { key: 'adId', synonyms: ['adid', 'ad id', 'ad_id', 'ad'] },
-        { key: 'name', synonyms: ['name', 'campaign name', 'ad set name', 'ad name'] },
+        { key: 'campaignId', synonyms: ['campaignid', 'campaign', 'parentcampaignid', 'campaignuuid'] },
+        { key: 'adSetId', synonyms: ['adsetid', 'adset', 'parentadsetid', 'adsetuuid'] },
+        { key: 'adId', synonyms: ['adid', 'ad', 'aduuid'] },
+        { key: 'name', synonyms: ['name', 'campaignname', 'adsetname', 'adname'] },
         { key: 'status', synonyms: ['status', 'delivery'] }
       ];
 
       structuralFields.forEach((field) => {
-        rawHeaders.forEach((rawHeader, idx) => {
-          if (field.synonyms.includes(rawHeader)) {
+        rawHeadersNormalized.forEach((rawNorm, idx) => {
+          if (field.synonyms.includes(rawNorm)) {
             headerMap[idx] = field.key;
           }
         });
