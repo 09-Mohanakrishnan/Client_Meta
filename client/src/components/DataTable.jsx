@@ -137,9 +137,36 @@ const DataTable = ({
           </div>
         ),
       },
+      // Status Switch (Off/On) - Hardcoded second column matching FB Ads Manager
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: () => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 4px' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Off/On</span>
+          </div>
+        ),
+        cell: ({ row }) => {
+          const val = row.original.status;
+          const isOn = val === 'Active';
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <label className="meta-switch">
+                <input type="checkbox" checked={isOn}
+                  onChange={(e) => {
+                    onInlineEdit(row.original._id, 'status', e.target.checked ? 'Active' : 'Off');
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="meta-slider"></span>
+              </label>
+            </div>
+          );
+        }
+      },
     ];
 
-    columns.filter(col => col.visible).forEach(col => {
+    columns.filter(col => col.visible && col.key !== 'status').forEach(col => {
       list.push({
         id: col.key,
         accessorKey: col.key,
@@ -410,11 +437,15 @@ const DataTable = ({
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>
-                {hg.headers.map(h => (
-                  <th key={h.id}>
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </th>
-                ))}
+                {hg.headers.map((h, idx) => {
+                  const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
+                  const bgColor = isAlternate ? '#f7f8fa' : 'var(--meta-table-header-bg)';
+                  return (
+                    <th key={h.id} style={{ backgroundColor: bgColor }}>
+                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -431,11 +462,16 @@ const DataTable = ({
             ) : (
               table.getRowModel().rows.map(row => (
                 <tr key={row.id} className={row.getIsSelected() ? 'selected' : ''}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell, idx) => {
+                    const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
+                    const isSelected = row.getIsSelected();
+                    const bgColor = isSelected ? '#e7f3ff' : (isAlternate ? '#f9fafb' : '#ffffff');
+                    return (
+                      <td key={cell.id} style={{ backgroundColor: bgColor }}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
@@ -443,7 +479,7 @@ const DataTable = ({
           {data.length > 0 && (
             <tfoot style={{ position: 'sticky', bottom: 0, backgroundColor: '#fff', zIndex: 4 }}>
               <tr>
-                {table.getVisibleFlatColumns().map((col) => {
+                {table.getVisibleFlatColumns().map((col, idx) => {
                   const isSelect = col.id === 'select';
                   const isStatus = col.id === 'status';
                   const isName = col.id === 'name';
@@ -455,6 +491,9 @@ const DataTable = ({
                   const colDef = columns.find(c => c.key === col.id);
                   const isNumeric = colDef && ['number', 'currency', 'percentage'].includes(colDef.type);
 
+                  const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
+                  const cellBg = isAlternate ? '#f9fafb' : '#ffffff';
+
                   const commonStyle = {
                     padding: '6px 8px',
                     borderTop: '2px solid #dddfe2',
@@ -464,7 +503,7 @@ const DataTable = ({
                     fontSize: '12px',
                     color: '#1c1e21',
                     verticalAlign: 'top',
-                    backgroundColor: '#fff',
+                    backgroundColor: cellBg,
                   };
 
                   if (isSelect || isStatus) {
