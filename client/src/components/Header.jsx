@@ -47,9 +47,9 @@ const Header = () => {
             fontSize: '13px', fontWeight: 600, color: '#1c1e21',
           }}>
             <div style={{
-              width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#42b72a',
+              width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#9bdc77',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '11px', fontWeight: 700, flexShrink: 0,
+              color: '#2e6d2b', fontSize: '12px', fontWeight: 800, flexShrink: 0,
             }}>S</div>
             <input
               ref={accountInputRef}
@@ -81,9 +81,9 @@ const Header = () => {
             onMouseLeave={e => { if (canEditAccount) e.currentTarget.style.backgroundColor = '#fff'; }}
           >
             <div style={{
-              width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#42b72a',
+              width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#9bdc77',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '11px', fontWeight: 700,
+              color: '#2e6d2b', fontSize: '12px', fontWeight: 800,
             }}>S</div>
             <span>{accountLabel}</span>
             <ChevronDown size={14} color="#65676b" />
