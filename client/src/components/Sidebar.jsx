@@ -7,12 +7,12 @@ import {
   Columns,
   Users,
   ClipboardList,
-  Bug,
   HelpCircle,
   Bell,
   BarChart2,
   Search,
-  Settings
+  Settings,
+  Bug,
 } from 'lucide-react';
 
 const iconBtnStyle = {
@@ -88,8 +88,10 @@ const Sidebar = () => {
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 0', gap: '2px', borderTop: '1px solid #e4e6eb' }}>
         <button title="Help" style={iconBtnStyle}><HelpCircle size={17} strokeWidth={1.8} /></button>
         <button title="Settings" style={iconBtnStyle}><Settings size={17} strokeWidth={1.8} /></button>
-        <button title={`${user?.name} (${user?.role})`} style={iconBtnStyle}><Search size={17} strokeWidth={1.8} /></button>
-        <button onClick={logout} title="Sign Out" style={iconBtnStyle}><Bug size={17} strokeWidth={1.8} /></button>
+        <button title="Search" style={iconBtnStyle}><Search size={17} strokeWidth={1.8} /></button>
+        <button onClick={logout} title="Debug / Sign Out" style={iconBtnStyle}>
+          <Bug size={17} strokeWidth={1.8} />
+        </button>
       </div>
     </aside>
   );
