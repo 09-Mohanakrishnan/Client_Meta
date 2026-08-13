@@ -152,7 +152,8 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       const parsedItems = [];
       for (let i = 1; i < rawRows.length; i++) {
         const row = rawRows[i];
-        if (row.length === 1 && row[0] === '') continue; // Skip blank line
+        const isBlank = row.every((cell) => !cell || cell.trim() === '');
+        if (isBlank) continue; // Skip completely blank lines
 
         const item = {};
         row.forEach((cell, idx) => {

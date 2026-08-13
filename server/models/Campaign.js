@@ -10,6 +10,7 @@ const campaignSchema = new mongoose.Schema(
     campaignId: {
       type: String,
       required: true,
+      unique: true,
       trim: true,
     },
     delivery: {

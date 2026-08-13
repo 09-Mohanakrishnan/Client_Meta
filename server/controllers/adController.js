@@ -1,6 +1,8 @@
 import Ad from '../models/Ad.js';
 import AdSet from '../models/AdSet.js';
 import Campaign from '../models/Campaign.js';
+import AdPerformance from '../models/AdPerformance.js';
+import { enrichWithPerformance } from '../services/performanceService.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -8,7 +10,7 @@ const generateUniqueId = (prefix) => {
   return `${prefix}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 };
 
-// @desc    Get all ads (paginated, sorted, filtered, searched)
+// @desc    Get all ads (paginated, sorted, filtered, searched, enriched with performance)
 // @route   GET /api/ads
 // @access  Private
 export const getAds = async (req, res) => {
@@ -19,7 +21,7 @@ export const getAds = async (req, res) => {
 
     const query = {};
 
-    // Filter by campaignId or adSetId
+    // Filter by campaignId or adSetId (for drilldowns)
     if (req.query.campaignId) {
       query.campaignId = req.query.campaignId;
     }
@@ -40,56 +42,20 @@ export const getAds = async (req, res) => {
     if (req.query.status && req.query.status !== 'All') {
       if (req.query.status === 'Had delivery') {
         query.status = 'Active';
-        query.reach = { $gt: 0 };
       } else {
         query.status = req.query.status;
       }
     }
 
-    // 3. Date Range Filter
-    if (req.query.startDate && req.query.endDate) {
-      if (!req.query.campaignId && !req.query.adSetId) {
-        const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
-        const [ey, em, ed] = req.query.endDate.split('-').map(Number);
-        const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
-        const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
-
-        query.$or = [
-          {
-            reportingStarts: { $lte: req.query.endDate },
-            reportingEnds: { $gte: req.query.startDate },
-          },
-          {
-            createdAt: { $gte: startUTC, $lte: endUTC },
-          },
-          {
-            reportingStarts: { $exists: false },
-          },
-          {
-            reportingStarts: null,
-          },
-          {
-            reportingStarts: '',
-          },
-        ];
-      }
-    }
-
-    // 4. Advanced Filters
+    // 3. Advanced Budget Filters
     if (req.query.minBudget !== undefined && req.query.minBudget !== '') {
       query.budget = { ...query.budget, $gte: parseFloat(req.query.minBudget) };
     }
     if (req.query.maxBudget !== undefined && req.query.maxBudget !== '') {
       query.budget = { ...query.budget, $lte: parseFloat(req.query.maxBudget) };
     }
-    if (req.query.minReach !== undefined && req.query.minReach !== '') {
-      query.reach = { ...query.reach, $gte: parseInt(req.query.minReach, 10) };
-    }
-    if (req.query.maxCost !== undefined && req.query.maxCost !== '') {
-      query.costPerResult = { ...query.costPerResult, $lte: parseFloat(req.query.maxCost) };
-    }
 
-    // 5. Dynamic filters
+    // Dynamic field filters
     if (req.query.advancedFilters) {
       try {
         const advFilters = JSON.parse(req.query.advancedFilters);
@@ -113,13 +79,49 @@ export const getAds = async (req, res) => {
     const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
     const sort = { [sortBy]: sortOrder };
 
-    const ads = await Ad.find(query).sort(sort).skip(skip).limit(limit);
-    const total = await Ad.countDocuments(query);
+    // Fetch structural Ads
+    const rawAds = await Ad.find(query).sort(sort).lean();
+
+    // Enrich ads dynamically with performance metrics for date range
+    let ads = await enrichWithPerformance(
+      rawAds,
+      'ad',
+      req.query.startDate,
+      req.query.endDate
+    );
+
+    // Apply delivery criteria filter if "Had delivery" is selected
+    if (req.query.status === 'Had delivery') {
+      ads = ads.filter(a => (a.reach > 0 || a.impressions > 0 || a.amountSpent > 0));
+    }
+
+    // Apply performance metric filters if provided
+    if (req.query.minReach !== undefined && req.query.minReach !== '') {
+      const minR = parseInt(req.query.minReach, 10);
+      ads = ads.filter(a => (a.reach || 0) >= minR);
+    }
+    if (req.query.maxCost !== undefined && req.query.maxCost !== '') {
+      const maxC = parseFloat(req.query.maxCost);
+      ads = ads.filter(a => (a.costPerResult || 0) <= maxC);
+    }
+
+    // Dynamic sort for performance columns
+    const dynamicFields = ['results', 'reach', 'impressions', 'amountSpent', 'costPerResult', 'frequency'];
+    if (dynamicFields.includes(sortBy)) {
+      ads.sort((a, b) => {
+        const aVal = a[sortBy] || 0;
+        const bVal = b[sortBy] || 0;
+        return (aVal - bVal) * sortOrder;
+      });
+    }
+
+    const total = ads.length;
+    const paginatedAds = ads.slice(skip, skip + limit);
 
     res.json({
       success: true,
       data: {
-        ads,
+        ads: paginatedAds,
         total,
         page,
         pages: Math.ceil(total / limit),
@@ -412,13 +414,24 @@ export const importAds = async (req, res) => {
 
       const adId = item.adId || generateUniqueId('AD');
       const updateData = {
-        ...item,
+        name: item.name,
         adId,
         adSetId,
         adSetObjectId,
         campaignId,
         campaignObjectId,
-        status: item.status || 'Draft',
+        delivery: item.delivery || 'Active',
+        adSetName: item.adSetName || sName || '',
+        bidStrategy: item.bidStrategy || 'Highest volume',
+        budget: item.budget || 0,
+        qualityRanking: item.qualityRanking || 'Average',
+        engagementRateRanking: item.engagementRateRanking || 'Average',
+        conversionRanking: item.conversionRanking || 'Average',
+        image: item.image || item.imageUrl || '',
+        imageUrl: item.imageUrl || item.image || '',
+        video: item.video || item.videoUrl || '',
+        videoUrl: item.videoUrl || item.video || '',
+        status: item.status || (item.delivery === 'Active' ? 'Active' : 'Off'),
       };
 
       bulkOps.push({
@@ -428,9 +441,48 @@ export const importAds = async (req, res) => {
           upsert: true,
         },
       });
+
+      // Extract performance metrics
+      const hasPerformanceData = item.results !== undefined || item.amountSpent !== undefined || item.reach !== undefined || item.impressions !== undefined;
+      if (hasPerformanceData) {
+        const isDaily = Boolean(item.isDaily || (item.date && !item.reportingStarts));
+        const perfData = {
+          adId,
+          adSetId,
+          campaignId,
+          isDaily,
+          date: item.date || (isDaily ? (item.reportingStarts || new Date().toISOString().split('T')[0]) : ''),
+          reportingStarts: item.reportingStarts || '',
+          reportingEnds: item.reportingEnds || '',
+          results: item.results || 0,
+          resultType: item.resultType || 'Link clicks',
+          reach: item.reach || 0,
+          impressions: item.impressions || 0,
+          costPerResult: item.costPerResult || (item.results > 0 ? parseFloat((item.amountSpent / item.results).toFixed(2)) : 0),
+          amountSpent: item.amountSpent || 0,
+          frequency: item.frequency || (item.reach > 0 ? parseFloat((item.impressions / item.reach).toFixed(2)) : 1.0),
+        };
+
+        const perfFilter = isDaily
+          ? { adId, date: perfData.date, isDaily: true }
+          : { adId, reportingStarts: perfData.reportingStarts, reportingEnds: perfData.reportingEnds, isDaily: false };
+
+        perfBulkOps.push({
+          updateOne: {
+            filter: perfFilter,
+            update: { $set: perfData },
+            upsert: true,
+          },
+        });
+      }
     }
 
-    const result = await Ad.bulkWrite(bulkOps);
+    if (bulkOps.length > 0) {
+      await Ad.bulkWrite(bulkOps);
+    }
+    if (perfBulkOps.length > 0) {
+      await AdPerformance.bulkWrite(perfBulkOps);
+    }
     const count = bulkOps.length;
 
     await logActivity({
@@ -445,7 +497,7 @@ export const importAds = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Successfully imported ${count} ads`,
+      message: `Successfully imported ${count} ads and their performance data`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

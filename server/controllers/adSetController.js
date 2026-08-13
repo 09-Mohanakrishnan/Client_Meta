@@ -1,6 +1,8 @@
 import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
 import Campaign from '../models/Campaign.js';
+import AdPerformance from '../models/AdPerformance.js';
+import { enrichWithPerformance } from '../services/performanceService.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -8,7 +10,7 @@ const generateUniqueId = (prefix) => {
   return `${prefix}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 };
 
-// @desc    Get all adsets (paginated, sorted, filtered, searched)
+// @desc    Get all adsets (paginated, sorted, filtered, searched, enriched with performance)
 // @route   GET /api/adsets
 // @access  Private
 export const getAdSets = async (req, res) => {
@@ -19,7 +21,7 @@ export const getAdSets = async (req, res) => {
 
     const query = {};
 
-    // Filter by Campaign string ID
+    // Filter by Campaign string ID (for drilldown from Campaigns)
     if (req.query.campaignId) {
       query.campaignId = req.query.campaignId;
     }
@@ -37,66 +39,20 @@ export const getAdSets = async (req, res) => {
     if (req.query.status && req.query.status !== 'All') {
       if (req.query.status === 'Had delivery') {
         query.status = 'Active';
-        query.reach = { $gt: 0 };
       } else {
         query.status = req.query.status;
       }
     }
 
-    // 3. Date Range Filter
-    if (req.query.startDate && req.query.endDate) {
-      if (!req.query.campaignId) {
-        const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
-        const [ey, em, ed] = req.query.endDate.split('-').map(Number);
-        const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
-        const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
-
-        query.$or = [
-          {
-            startDate: { $lte: req.query.endDate },
-            endDate: { $gte: req.query.startDate },
-          },
-          {
-            reportingStarts: { $lte: req.query.endDate },
-            reportingEnds: { $gte: req.query.startDate },
-          },
-          {
-            createdAt: { $gte: startUTC, $lte: endUTC },
-          },
-          {
-            startDate: { $exists: false },
-          },
-          {
-            startDate: null,
-          },
-          {
-            startDate: '',
-          },
-          {
-            startDate: 'Ongoing',
-          },
-          {
-            endDate: 'Ongoing',
-          },
-        ];
-      }
-    }
-
-    // 4. Advanced Filters
+    // 3. Advanced Budget Filters
     if (req.query.minBudget !== undefined && req.query.minBudget !== '') {
       query.budget = { ...query.budget, $gte: parseFloat(req.query.minBudget) };
     }
     if (req.query.maxBudget !== undefined && req.query.maxBudget !== '') {
       query.budget = { ...query.budget, $lte: parseFloat(req.query.maxBudget) };
     }
-    if (req.query.minReach !== undefined && req.query.minReach !== '') {
-      query.reach = { ...query.reach, $gte: parseInt(req.query.minReach, 10) };
-    }
-    if (req.query.maxCost !== undefined && req.query.maxCost !== '') {
-      query.costPerResult = { ...query.costPerResult, $lte: parseFloat(req.query.maxCost) };
-    }
 
-    // 5. Dynamic filters
+    // Dynamic field filters
     if (req.query.advancedFilters) {
       try {
         const advFilters = JSON.parse(req.query.advancedFilters);
@@ -120,13 +76,49 @@ export const getAdSets = async (req, res) => {
     const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
     const sort = { [sortBy]: sortOrder };
 
-    const adsets = await AdSet.find(query).sort(sort).skip(skip).limit(limit);
-    const total = await AdSet.countDocuments(query);
+    // Fetch structural AdSets
+    const rawAdSets = await AdSet.find(query).sort(sort).lean();
+
+    // Enrich ad sets dynamically with date-range performance metrics
+    let adsets = await enrichWithPerformance(
+      rawAdSets,
+      'adset',
+      req.query.startDate,
+      req.query.endDate
+    );
+
+    // Apply delivery criteria filter if "Had delivery" is selected
+    if (req.query.status === 'Had delivery') {
+      adsets = adsets.filter(a => (a.reach > 0 || a.impressions > 0 || a.amountSpent > 0));
+    }
+
+    // Apply performance metric filters if provided
+    if (req.query.minReach !== undefined && req.query.minReach !== '') {
+      const minR = parseInt(req.query.minReach, 10);
+      adsets = adsets.filter(a => (a.reach || 0) >= minR);
+    }
+    if (req.query.maxCost !== undefined && req.query.maxCost !== '') {
+      const maxC = parseFloat(req.query.maxCost);
+      adsets = adsets.filter(a => (a.costPerResult || 0) <= maxC);
+    }
+
+    // Dynamic sort for performance columns
+    const dynamicFields = ['results', 'reach', 'impressions', 'amountSpent', 'costPerResult', 'frequency'];
+    if (dynamicFields.includes(sortBy)) {
+      adsets.sort((a, b) => {
+        const aVal = a[sortBy] || 0;
+        const bVal = b[sortBy] || 0;
+        return (aVal - bVal) * sortOrder;
+      });
+    }
+
+    const total = adsets.length;
+    const paginatedAdSets = adsets.slice(skip, skip + limit);
 
     res.json({
       success: true,
       data: {
-        adsets,
+        adsets: paginatedAdSets,
         total,
         page,
         pages: Math.ceil(total / limit),
@@ -381,11 +373,17 @@ export const importAdSets = async (req, res) => {
 
       const adSetId = item.adSetId || generateUniqueId('SET');
       const updateData = {
-        ...item,
+        name: item.name,
         adSetId,
         campaignId,
         campaignObjectId,
-        status: item.status || 'Draft',
+        delivery: item.delivery || 'Active',
+        bidStrategy: item.bidStrategy || 'Highest volume',
+        budget: item.budget || 0,
+        budgetType: item.budgetType || 'Daily',
+        startDate: item.startDate || '2026-07-15',
+        endDate: item.endDate || 'Ongoing',
+        status: item.status || (item.delivery === 'Active' ? 'Active' : 'Off'),
       };
 
       bulkOps.push({
@@ -395,9 +393,47 @@ export const importAdSets = async (req, res) => {
           upsert: true,
         },
       });
+
+      // Extract performance metrics
+      const hasPerformanceData = item.results !== undefined || item.amountSpent !== undefined || item.reach !== undefined || item.impressions !== undefined;
+      if (hasPerformanceData) {
+        const isDaily = Boolean(item.isDaily || (item.date && !item.reportingStarts));
+        const perfData = {
+          adSetId,
+          campaignId,
+          isDaily,
+          date: item.date || (isDaily ? (item.reportingStarts || new Date().toISOString().split('T')[0]) : ''),
+          reportingStarts: item.reportingStarts || '',
+          reportingEnds: item.reportingEnds || '',
+          results: item.results || 0,
+          resultType: item.resultType || 'Link clicks',
+          reach: item.reach || 0,
+          impressions: item.impressions || 0,
+          costPerResult: item.costPerResult || (item.results > 0 ? parseFloat((item.amountSpent / item.results).toFixed(2)) : 0),
+          amountSpent: item.amountSpent || 0,
+          frequency: item.frequency || (item.reach > 0 ? parseFloat((item.impressions / item.reach).toFixed(2)) : 1.0),
+        };
+
+        const perfFilter = isDaily
+          ? { adSetId, date: perfData.date, isDaily: true }
+          : { adSetId, reportingStarts: perfData.reportingStarts, reportingEnds: perfData.reportingEnds, isDaily: false };
+
+        perfBulkOps.push({
+          updateOne: {
+            filter: perfFilter,
+            update: { $set: perfData },
+            upsert: true,
+          },
+        });
+      }
     }
 
-    const result = await AdSet.bulkWrite(bulkOps);
+    if (bulkOps.length > 0) {
+      await AdSet.bulkWrite(bulkOps);
+    }
+    if (perfBulkOps.length > 0) {
+      await AdPerformance.bulkWrite(perfBulkOps);
+    }
     const count = bulkOps.length;
 
     await logActivity({
@@ -412,7 +448,7 @@ export const importAdSets = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Successfully imported ${count} ad sets`,
+      message: `Successfully imported ${count} ad sets and their performance data`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
