@@ -305,13 +305,24 @@ export const importAdSets = async (req, res) => {
   }
 
   try {
-    const prepared = adsetsList.map((item) => ({
-      ...item,
-      adSetId: item.adSetId || generateUniqueId('SET'),
-      status: item.status || 'Draft',
-    }));
+    const bulkOps = adsetsList.map((item) => {
+      const adSetId = item.adSetId || generateUniqueId('SET');
+      const updateData = {
+        ...item,
+        adSetId,
+        status: item.status || 'Draft',
+      };
+      return {
+        updateOne: {
+          filter: { adSetId },
+          update: { $set: updateData },
+          upsert: true,
+        },
+      };
+    });
 
-    const imported = await AdSet.insertMany(prepared);
+    const result = await AdSet.bulkWrite(bulkOps);
+    const count = bulkOps.length;
 
     await logActivity({
       userId: req.user._id,
@@ -319,14 +330,13 @@ export const importAdSets = async (req, res) => {
       action: 'IMPORT_ADSETS',
       entityType: 'adset',
       entityId: 'bulk',
-      newValue: { count: imported.length },
+      newValue: { count },
       req,
     });
 
     res.status(201).json({
       success: true,
-      message: `Successfully imported ${imported.length} ad sets`,
-      data: imported,
+      message: `Successfully imported ${count} ad sets`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

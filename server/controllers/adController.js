@@ -304,13 +304,24 @@ export const importAds = async (req, res) => {
   }
 
   try {
-    const prepared = adsList.map((item) => ({
-      ...item,
-      adId: item.adId || generateUniqueId('AD'),
-      status: item.status || 'Draft',
-    }));
+    const bulkOps = adsList.map((item) => {
+      const adId = item.adId || generateUniqueId('AD');
+      const updateData = {
+        ...item,
+        adId,
+        status: item.status || 'Draft',
+      };
+      return {
+        updateOne: {
+          filter: { adId },
+          update: { $set: updateData },
+          upsert: true,
+        },
+      };
+    });
 
-    const imported = await Ad.insertMany(prepared);
+    const result = await Ad.bulkWrite(bulkOps);
+    const count = bulkOps.length;
 
     await logActivity({
       userId: req.user._id,
@@ -318,14 +329,13 @@ export const importAds = async (req, res) => {
       action: 'IMPORT_ADS',
       entityType: 'ad',
       entityId: 'bulk',
-      newValue: { count: imported.length },
+      newValue: { count },
       req,
     });
 
     res.status(201).json({
       success: true,
-      message: `Successfully imported ${imported.length} ads`,
-      data: imported,
+      message: `Successfully imported ${count} ads`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -306,13 +306,24 @@ export const importCampaigns = async (req, res) => {
   }
 
   try {
-    const prepared = campaignsList.map((item) => ({
-      ...item,
-      campaignId: item.campaignId || generateUniqueId('CAM'),
-      status: item.status || 'Draft',
-    }));
+    const bulkOps = campaignsList.map((item) => {
+      const campaignId = item.campaignId || generateUniqueId('CAM');
+      const updateData = {
+        ...item,
+        campaignId,
+        status: item.status || 'Draft',
+      };
+      return {
+        updateOne: {
+          filter: { campaignId },
+          update: { $set: updateData },
+          upsert: true,
+        },
+      };
+    });
 
-    const imported = await Campaign.insertMany(prepared);
+    const result = await Campaign.bulkWrite(bulkOps);
+    const count = bulkOps.length;
 
     await logActivity({
       userId: req.user._id,
@@ -320,14 +331,13 @@ export const importCampaigns = async (req, res) => {
       action: 'IMPORT_CAMPAIGNS',
       entityType: 'campaign',
       entityId: 'bulk',
-      newValue: { count: imported.length },
+      newValue: { count },
       req,
     });
 
     res.status(201).json({
       success: true,
-      message: `Successfully imported ${imported.length} campaigns`,
-      data: imported,
+      message: `Successfully imported ${count} campaigns`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

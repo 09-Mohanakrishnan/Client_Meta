@@ -180,6 +180,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
       const existingIds = new Set(existingItems.map((item) => 
         entityType === 'campaign' ? item.campaignId : entityType === 'adset' ? item.adSetId : item.adId
       ));
+      const seenIds = new Set();
 
       parsedItems.forEach((item, index) => {
         const rowNum = index + 2;
@@ -202,12 +203,15 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
           }
         }
 
-        // 2. Check duplicates
+        // 2. Check duplicates (both in existing database items and within the CSV itself)
         const itemUniqueId = entityType === 'campaign' ? item.campaignId : entityType === 'adset' ? item.adSetId : item.adId;
         
-        if (itemUniqueId && existingIds.has(itemUniqueId)) {
-          duplicates.push({ item, reason: `Row ${rowNum}: ID '${itemUniqueId}' already exists in database` });
-          return;
+        if (itemUniqueId) {
+          if (existingIds.has(itemUniqueId) || seenIds.has(itemUniqueId)) {
+            duplicates.push({ item, reason: `Row ${rowNum}: ID '${itemUniqueId}' already exists or is a duplicate in CSV` });
+            return;
+          }
+          seenIds.add(itemUniqueId);
         }
 
         valid.push(item);
