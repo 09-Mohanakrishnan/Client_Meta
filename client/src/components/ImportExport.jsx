@@ -306,10 +306,10 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
           <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-2xl flex flex-col max-h-[85vh]">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-155 px-6 py-4 bg-gray-50/50">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-3.5 bg-gray-50/50">
               <div className="flex items-center gap-2">
                 <FileText size={18} className="text-blue-600" />
-                <h2 className="text-sm font-semibold text-gray-900 capitalize">Import {entityType}s Preview</h2>
+                <h2 className="text-[15px] font-bold text-gray-900 capitalize">Import {entityType}s Preview</h2>
               </div>
               <button
                 onClick={() => setShowImportModal(false)}
@@ -323,35 +323,35 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
             <div className={`grid ${entityType === 'campaign' ? 'grid-cols-3' : 'grid-cols-4'} gap-3 p-6 pb-2`}>
               <div className="rounded-lg border border-green-200 bg-green-50/30 p-3 flex flex-col items-center">
                 <CheckCircle size={20} className="text-green-600 mb-1" />
-                <span className="text-lg font-bold text-green-700">{previewData.valid.length}</span>
-                <span className="text-[10px] font-semibold text-green-600 uppercase">Valid Rows</span>
+                <span className="text-xl font-bold text-green-700">{previewData.valid.length}</span>
+                <span className="text-[11px] font-semibold text-green-600 uppercase">Valid Rows</span>
               </div>
               <div className="rounded-lg border border-yellow-250 bg-yellow-50/20 p-3 flex flex-col items-center">
                 <AlertTriangle size={20} className="text-yellow-600 mb-1" />
-                <span className="text-lg font-bold text-yellow-700">{previewData.duplicates.length}</span>
-                <span className="text-[10px] font-semibold text-yellow-600 uppercase">Duplicate Rows</span>
+                <span className="text-xl font-bold text-yellow-700">{previewData.duplicates.length}</span>
+                <span className="text-[11px] font-semibold text-yellow-600 uppercase">Duplicate Rows</span>
               </div>
               {entityType !== 'campaign' && (
                 <div className="rounded-lg border border-amber-250 bg-amber-50/20 p-3 flex flex-col items-center">
                   <AlertTriangle size={20} className="text-amber-600 mb-1" />
-                  <span className="text-lg font-bold text-amber-700">{previewData.warnings?.length || 0}</span>
-                  <span className="text-[10px] font-semibold text-amber-600 uppercase">Unresolved Ref</span>
+                  <span className="text-xl font-bold text-amber-700">{previewData.warnings?.length || 0}</span>
+                  <span className="text-[11px] font-semibold text-amber-600 uppercase">Unresolved Ref</span>
                 </div>
               )}
               <div className="rounded-lg border border-red-200 bg-red-50/30 p-3 flex flex-col items-center">
                 <AlertOctagon size={20} className="text-red-600 mb-1" />
-                <span className="text-lg font-bold text-red-700">{previewData.invalid.length}</span>
-                <span className="text-[10px] font-semibold text-red-600 uppercase">Invalid Rows</span>
+                <span className="text-xl font-bold text-red-700">{previewData.invalid.length}</span>
+                <span className="text-[11px] font-semibold text-red-600 uppercase">Invalid Rows</span>
               </div>
             </div>
 
             {/* Logs & Errors */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-xs">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-[13px]">
               {/* Warnings / Errors */}
               {(previewData.invalid.length > 0 || previewData.duplicates.length > 0 || (previewData.warnings && previewData.warnings.length > 0)) && (
                 <div className="rounded-md bg-yellow-50/50 border border-yellow-200 p-3.5 text-gray-700 space-y-1.5">
-                  <h4 className="font-bold text-yellow-800 text-[11px] uppercase tracking-wider">Formatting warnings ({previewData.invalid.length + previewData.duplicates.length + (previewData.warnings?.length || 0)})</h4>
-                  <ul className="list-disc pl-4 space-y-1 text-[11px] font-medium text-gray-600">
+                  <h4 className="font-bold text-yellow-800 text-[12px] uppercase tracking-wider">Formatting warnings ({previewData.invalid.length + previewData.duplicates.length + (previewData.warnings?.length || 0)})</h4>
+                  <ul className="list-disc pl-4 space-y-1 text-[12px] font-medium text-gray-600">
                     {previewData.invalid.map((item, idx) => (
                       <li key={`inv-${idx}`} className="text-red-600">{item.reason}</li>
                     ))}
@@ -367,13 +367,13 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
 
               {/* Grid Preview of Valid Rows */}
               <div>
-                <h4 className="font-bold text-gray-700 text-[11px] uppercase tracking-wider mb-2">Rows to import ({previewData.valid.length})</h4>
+                <h4 className="font-bold text-gray-700 text-[12px] uppercase tracking-wider mb-2">Rows to import ({previewData.valid.length})</h4>
                 {previewData.valid.length === 0 ? (
-                  <p className="text-gray-400 italic">No valid rows detected. Make sure columns match configuration labels or keys.</p>
+                  <p className="text-gray-400 italic text-[12px]">No valid rows detected. Make sure columns match configuration labels or keys.</p>
                 ) : (
                   <div className="border border-gray-200 rounded-lg overflow-x-auto max-h-48">
-                    <table className="w-full text-left text-[11px] border-collapse min-w-max">
-                      <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200">
+                    <table className="w-full text-left text-[12px] border-collapse min-w-max">
+                      <thead className="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase border-b border-gray-200">
                         <tr>
                           {columns.filter(c => c.visible).slice(0, 5).map(c => (
                             <th key={c.key} className="px-3 py-1.5">{c.label}</th>
@@ -396,11 +396,11 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
             </div>
 
             {/* Footer controls */}
-            <div className="flex gap-2 justify-end border-t border-gray-150 px-6 py-4 bg-gray-50/50">
+            <div className="flex gap-2 justify-end border-t border-gray-200 px-6 py-3.5 bg-gray-50/50">
               <button
                 type="button"
                 onClick={() => setShowImportModal(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-[13px] font-semibold text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
@@ -408,7 +408,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
                 <button
                   type="button"
                   onClick={handleImportAnyway}
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors shadow-sm"
+                  className="px-4 py-2 text-[13px] font-semibold text-white bg-amber-600 rounded hover:bg-amber-700 transition-colors shadow-sm"
                 >
                   Import anyway
                 </button>
@@ -417,7 +417,7 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
                 type="button"
                 onClick={handleImportSubmit}
                 disabled={previewData.valid.length === 0 || isImporting}
-                className="flex items-center gap-1 px-4 py-1.5 text-xs font-semibold text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-40 disabled:hover:bg-green-600 transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-40 disabled:hover:bg-green-600 transition-colors shadow-sm"
               >
                 {isImporting ? 'Importing...' : (
                   <>

@@ -344,8 +344,8 @@ const DataTable = ({
                 value={val ?? ''}
                 displayContent={
                   <div style={{ display: 'flex', flexDirection: 'column', padding: '0 4px', textAlign: 'right', width: '100%' }}>
-                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '12px' }}>{typeof val === 'string' ? val : formatted}</span>
-                    {typeof val === 'number' && <span style={{ fontSize: '10px', color: '#8a8d91' }}>{budgetType}</span>}
+                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '13px' }}>{typeof val === 'string' ? val : formatted}</span>
+                    {typeof val === 'number' && <span style={{ fontSize: '11px', color: '#65676b' }}>{budgetType}</span>}
                   </div>
                 }
                 columnKey={col.key}
@@ -364,8 +364,8 @@ const DataTable = ({
                 value={val ?? ''}
                 displayContent={
                   <div style={{ display: 'flex', flexDirection: 'column', padding: '0 4px', textAlign: 'right', width: '100%' }}>
-                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '12px' }}>{formatted ?? '—'}</span>
-                    {val != null && <span style={{ fontSize: '10px', color: '#8a8d91' }}>{resultType}</span>}
+                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '13px' }}>{formatted ?? '—'}</span>
+                    {val != null && <span style={{ fontSize: '11px', color: '#65676b' }}>{resultType}</span>}
                   </div>
                 }
                 columnKey={col.key}
@@ -386,8 +386,8 @@ const DataTable = ({
                 value={val ?? ''}
                 displayContent={
                   <div style={{ display: 'flex', flexDirection: 'column', padding: '0 4px', textAlign: 'right', width: '100%' }}>
-                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '12px' }}>{formatted ?? '—'}</span>
-                    {val != null && <span style={{ fontSize: '10px', color: '#8a8d91' }}>{resultType}</span>}
+                    <span style={{ fontWeight: 500, color: '#1c1e21', fontSize: '13px' }}>{formatted ?? '—'}</span>
+                    {val != null && <span style={{ fontSize: '11px', color: '#65676b' }}>{resultType}</span>}
                   </div>
                 }
                 columnKey={col.key}
@@ -542,7 +542,7 @@ const DataTable = ({
                     borderBottom: '2px solid #dddfe2',
                     borderRight: '1px solid #ebedf0',
                     fontWeight: 700,
-                    fontSize: '12px',
+                    fontSize: '13px',
                     color: '#1c1e21',
                     verticalAlign: 'top',
                     backgroundColor: '#ffffff',
@@ -568,7 +568,7 @@ const DataTable = ({
                       <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
                           <span>{reachSum.toLocaleString('en-IN')}</span>
-                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Meta accounts</span>
+                          <span style={{ fontSize: '11px', color: '#65676b', fontWeight: 400, marginTop: '2px' }}>Meta accounts</span>
                         </div>
                       </td>
                     );
@@ -579,7 +579,7 @@ const DataTable = ({
                       <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
                           <span>{impressionsSum.toLocaleString('en-IN')}</span>
-                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Total</span>
+                          <span style={{ fontSize: '11px', color: '#65676b', fontWeight: 400, marginTop: '2px' }}>Total</span>
                         </div>
                       </td>
                     );
@@ -590,7 +590,7 @@ const DataTable = ({
                       <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
                           <span>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amountSpentSum)}</span>
-                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Total Spent</span>
+                          <span style={{ fontSize: '11px', color: '#65676b', fontWeight: 400, marginTop: '2px' }}>Total Spent</span>
                         </div>
                       </td>
                     );
@@ -601,7 +601,7 @@ const DataTable = ({
                       <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
                           <span>{frequencyWeighted > 0 ? frequencyWeighted.toFixed(2) : '—'}</span>
-                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Per Meta account</span>
+                          <span style={{ fontSize: '11px', color: '#65676b', fontWeight: 400, marginTop: '2px' }}>Per Meta account</span>
                         </div>
                       </td>
                     );
@@ -627,11 +627,11 @@ const DataTable = ({
         borderTop: '1px solid #dddfe2', backgroundColor: '#f5f6f7',
         padding: '8px 16px', flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#65676b' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#65676b' }}>
           <span>Results from <strong style={{ color: '#1c1e21' }}>{total}</strong> {entityLabel}</span>
           <Info size={12} color="#8a8d91" style={{ cursor: 'help' }} />
           {Object.keys(selectedRows).length > 0 && (
-            <span style={{ fontWeight: 700, color: '#1877f2', backgroundColor: '#e7f3ff', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginLeft: '4px' }}>
+            <span style={{ fontWeight: 700, color: '#1877f2', backgroundColor: '#e7f3ff', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', marginLeft: '4px' }}>
               {Object.keys(selectedRows).length} selected
             </span>
           )}
@@ -640,18 +640,18 @@ const DataTable = ({
           <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
             style={{
               padding: '4px 10px', border: '1px solid #dddfe2', borderRadius: '4px',
-              backgroundColor: '#fff', fontSize: '12px', fontWeight: 600, color: '#1c1e21',
+              backgroundColor: '#fff', fontSize: '13px', fontWeight: 600, color: '#1c1e21',
               cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.3 : 1,
             }}>
             Prev
           </button>
-          <span style={{ padding: '0 8px', fontSize: '12px', color: '#65676b' }}>
+          <span style={{ padding: '0 8px', fontSize: '13px', color: '#65676b' }}>
             <strong style={{ color: '#1c1e21' }}>{page}</strong> / <strong style={{ color: '#1c1e21' }}>{pages || 1}</strong>
           </span>
           <button onClick={() => onPageChange(page + 1)} disabled={page >= pages}
             style={{
               padding: '4px 10px', border: '1px solid #dddfe2', borderRadius: '4px',
-              backgroundColor: '#fff', fontSize: '12px', fontWeight: 600, color: '#1c1e21',
+              backgroundColor: '#fff', fontSize: '13px', fontWeight: 600, color: '#1c1e21',
               cursor: page >= pages ? 'not-allowed' : 'pointer', opacity: page >= pages ? 0.3 : 1,
             }}>
             Next

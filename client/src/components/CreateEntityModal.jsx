@@ -124,8 +124,8 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-lg border border-gray-200 bg-white shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-150 px-6 py-4 bg-gray-50/50">
-          <h2 className="text-sm font-semibold text-gray-900 capitalize">Create New {entityType}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-3.5 bg-gray-50/50">
+          <h2 className="text-[15px] font-bold text-gray-900 capitalize">Create New {entityType}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={16} />
           </button>
@@ -136,11 +136,11 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
           {/* Parent select dropdowns */}
           {entityType === 'adset' && (
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Parent Campaign <span className="text-red-500">*</span></label>
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1">Parent Campaign <span className="text-red-500">*</span></label>
               <select
                 value={selectedParentId}
                 onChange={(e) => setSelectedParentId(e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                 required
               >
                 <option value="">-- Select Campaign --</option>
@@ -155,11 +155,11 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
 
           {entityType === 'ad' && (
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Parent Ad Set <span className="text-red-500">*</span></label>
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1">Parent Ad Set <span className="text-red-500">*</span></label>
               <select
                 value={selectedParentId}
                 onChange={(e) => setSelectedParentId(e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                 required
               >
                 <option value="">-- Select Ad Set --</option>
@@ -176,7 +176,7 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
           {filterFormColumns.map((col) => {
             return (
               <div key={col.key}>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <label className="block text-[12px] font-semibold text-gray-700 mb-1">
                   {col.label} {col.key === 'name' ? <span className="text-red-500">*</span> : null}
                 </label>
 
@@ -184,7 +184,7 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
                   <select
                     value={formData[col.key] || 'Draft'}
                     onChange={(e) => handleChange(col.key, e.target.value, col.type)}
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                   >
                     {['Active', 'Off', 'Paused', 'Draft', 'Payment error'].map((s) => (
                       <option key={s} value={s}>
@@ -196,7 +196,7 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
                   <select
                     value={formData[col.key] || 'Daily'}
                     onChange={(e) => handleChange(col.key, e.target.value, col.type)}
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                   >
                     <option value="Daily">Daily</option>
                     <option value="Lifetime">Lifetime</option>
@@ -209,14 +209,14 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
                       onChange={(e) => handleChange(col.key, e.target.checked, col.type)}
                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="ml-2 text-xs text-gray-600">Enabled</span>
+                    <span className="ml-2 text-[13px] text-gray-700">Enabled</span>
                   </div>
                 ) : col.type === 'date' ? (
                   <input
                     type="date"
                     value={formData[col.key] || ''}
                     onChange={(e) => handleChange(col.key, e.target.value, col.type)}
-                    className="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                   />
                 ) : (
                   <input
@@ -224,7 +224,7 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
                     value={formData[col.key] ?? ''}
                     onChange={(e) => handleChange(col.key, e.target.value, col.type)}
                     placeholder={`Enter ${col.label.toLowerCase()}...`}
-                    className="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-[13px] focus:border-blue-500 focus:outline-none"
                     required={col.key === 'name'}
                     min={col.type === 'number' || col.type === 'currency' || col.type === 'percentage' ? '0' : undefined}
                     step={col.type === 'percentage' ? '0.01' : '1'}
@@ -235,17 +235,17 @@ const CreateEntityModal = ({ isOpen, onClose, entityType, onSave }) => {
           })}
 
           {/* Footer controls */}
-          <div className="flex gap-2 justify-end pt-4 border-t border-gray-150 mt-6">
+          <div className="flex gap-2 justify-end pt-4 border-t border-gray-200 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-[13px] font-semibold text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Check size={14} />
               <span>Save & Publish</span>

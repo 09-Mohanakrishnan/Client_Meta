@@ -21,22 +21,27 @@
 }
 
 @layer base {
+  *, *::before, *::after {
+    font-family: var(--meta-font);
+  }
   body, button, input, select, textarea {
     font-family: var(--meta-font);
   }
   body {
-    @apply antialiased text-xs;
+    @apply antialiased;
+    font-size: 13px;
+    line-height: 1.35;
     background-color: var(--meta-bg);
     color: var(--meta-text-primary);
   }
 }
 
 /* ===== TABLE ===== */
-.meta-table { font-size: 12px; color: var(--meta-text-primary); border-spacing: 0; }
+.meta-table { font-size: 13px; color: var(--meta-text-primary); border-spacing: 0; }
 
 .meta-table th {
   background-color: var(--meta-table-header-bg);
-  font-weight: 600; font-size: 12px; color: var(--meta-text-secondary);
+  font-weight: 600; font-size: 13px; color: var(--meta-text-secondary);
   border-right: 1px solid var(--meta-border-light);
   border-bottom: 1px solid var(--meta-border);
   padding: 0 8px !important; height: 36px; vertical-align: middle;
@@ -49,7 +54,7 @@
   border-right: 1px solid #ebedf0;
   border-bottom: 1px solid #ebedf0;
   padding: 0 8px !important; height: var(--meta-row-height);
-  vertical-align: middle; font-size: 12px;
+  vertical-align: middle; font-size: 13px;
 }
 .meta-table td:first-child { width: 40px; min-width: 40px; max-width: 40px; }
 .meta-table td:last-child { border-right: none; }
@@ -90,9 +95,9 @@ input:checked + .meta-slider:before { transform: translateX(16px); }
 /* ===== FOLDER TABS ===== */
 .meta-folder-tab {
   background: transparent; border: none; border-bottom: 3px solid transparent;
-  font-weight: 600; font-size: 13px; color: var(--meta-text-secondary);
-  padding: 10px 16px; cursor: pointer; transition: all 0.15s;
-  margin-bottom: -1px; white-space: nowrap;
+  font-weight: 700; font-size: 15px; color: var(--meta-text-secondary);
+  padding: 10px 18px; cursor: pointer; transition: all 0.15s;
+  margin-bottom: -1px; white-space: nowrap; line-height: 20px;
 }
 .meta-folder-tab:hover { background-color: rgba(0,0,0,0.03); }
 .meta-folder-tab.active {
@@ -101,25 +106,28 @@ input:checked + .meta-slider:before { transform: translateX(16px); }
 
 /* ===== BUTTONS ===== */
 .meta-btn {
-  @apply inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded transition-colors focus:outline-none;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded transition-colors focus:outline-none;
   border: 1px solid var(--meta-border); background: white; color: var(--meta-text-primary);
+  line-height: 18px;
 }
 .meta-btn:hover { background-color: #f2f3f5; }
 .meta-btn:active { background-color: #e4e6eb; }
 
 .meta-btn-green {
-  @apply inline-flex items-center gap-1 px-3.5 py-1.5 text-[12px] font-bold text-white rounded transition-colors focus:outline-none;
+  @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-bold text-white rounded transition-colors focus:outline-none;
   background-color: var(--meta-green); border: 1px solid var(--meta-green);
+  line-height: 18px;
 }
 .meta-btn-green:hover { background-color: var(--meta-green-hover); border-color: var(--meta-green-hover); }
 
 /* ===== FILTER PILLS ===== */
 .meta-filter-pill {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 5px;
   padding: 5px 12px; font-size: 13px; font-weight: 600;
   border-radius: 4px; cursor: pointer; transition: all 0.15s;
   white-space: nowrap; border: 1px solid var(--meta-border);
   color: var(--meta-text-primary); background: white;
+  line-height: 18px;
 }
 .meta-filter-pill:hover { background-color: #f2f3f5; }
 .meta-filter-pill.active {

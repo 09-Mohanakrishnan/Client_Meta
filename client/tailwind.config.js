@@ -30,7 +30,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Optimistic 95"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Optimistic 95"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
       },
     },
   },

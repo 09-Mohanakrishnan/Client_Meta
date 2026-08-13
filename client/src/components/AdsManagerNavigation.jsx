@@ -134,7 +134,7 @@ const AdsManagerNavigation = ({ activeLevel, searchInput, setSearchInput, status
             className={`meta-folder-tab ${activeLevel === 'campaigns' ? 'active' : ''}`}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Folder size={14} />
+              <Folder size={15} />
               Campaigns
             </span>
           </button>
@@ -143,7 +143,7 @@ const AdsManagerNavigation = ({ activeLevel, searchInput, setSearchInput, status
             className={`meta-folder-tab ${activeLevel === 'adsets' ? 'active' : ''}`}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Layers size={14} />
+              <Layers size={15} />
               Ad sets
             </span>
           </button>
@@ -152,7 +152,7 @@ const AdsManagerNavigation = ({ activeLevel, searchInput, setSearchInput, status
             className={`meta-folder-tab ${activeLevel === 'ads' ? 'active' : ''}`}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Tv size={14} />
+              <Tv size={15} />
               Ads
             </span>
           </button>

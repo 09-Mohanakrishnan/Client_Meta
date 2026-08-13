@@ -22,7 +22,7 @@ const InlineEditableCell = ({
 
   if (!canEdit) {
     return (
-      <div style={{ padding: '0 4px', fontSize: '12px', color: '#1c1e21', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ padding: '0 4px', fontSize: '13px', color: '#1c1e21', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {renderFormattedValue(initialValue, columnType)}
       </div>
     );
@@ -56,7 +56,7 @@ const InlineEditableCell = ({
       }}>
         {columnType === 'status' ? (
           <select ref={inputRef} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown}
-            style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '12px', outline: 'none', backgroundColor: '#fff' }}>
+            style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}>
             {['Active', 'Off', 'Payment error', 'Draft', 'Paused'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         ) : columnType === 'boolean' ? (
@@ -64,14 +64,14 @@ const InlineEditableCell = ({
             style={{ width: '16px', height: '16px' }} />
         ) : columnType === 'date' ? (
           <input ref={inputRef} type="date" value={value || ''} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown}
-            style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '12px', outline: 'none' }} />
+            style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '13px', outline: 'none' }} />
         ) : (
           <input ref={inputRef}
             type={isNumeric ? 'number' : 'text'}
             value={value ?? ''} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown}
             style={{
               flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px',
-              fontSize: '12px', outline: 'none', textAlign: isNumeric ? 'right' : 'left', backgroundColor: '#fff',
+              fontSize: '13px', outline: 'none', textAlign: isNumeric ? 'right' : 'left', backgroundColor: '#fff',
             }} />
         )}
         <button onClick={handleSave} style={{ padding: '2px', color: '#42b72a', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
@@ -89,7 +89,7 @@ const InlineEditableCell = ({
       onClick={() => setIsEditing(true)}
       style={{
         display: 'flex', alignItems: 'center', gap: '6px', padding: '0 4px',
-        fontSize: '12px', color: '#1c1e21', cursor: 'pointer', overflow: 'hidden',
+        fontSize: '13px', color: '#1c1e21', cursor: 'pointer', overflow: 'hidden',
         textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: '4px',
         justifyContent: isNumeric ? 'flex-end' : 'space-between',
         flexDirection: isNumeric ? 'row-reverse' : 'row',
