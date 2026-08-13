@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RefreshCw, ChevronDown, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import { RefreshCw, ChevronDown, CheckCircle2, MoreHorizontal, Gauge } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
@@ -90,19 +90,30 @@ const Header = () => {
           </div>
         )}
 
-        {/* Opportunity Score */}
+        {/* Opportunity Score Icon Button */}
+        <button 
+          title="Opportunity score"
+          style={{
+            width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: '6px', border: '1px solid #dddfe2', background: '#ffffff',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+        >
+          <Gauge size={16} color="#65676b" />
+        </button>
+
+        {/* Refresh Icon Button (Moved next to account dropdown selector) */}
         <button style={{
-          display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px',
-          borderRadius: '6px', border: '1px solid #dddfe2', background: '#fff',
-          cursor: 'pointer', fontSize: '13px', color: '#1c1e21',
-        }}>
-          <div style={{
-            width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#42b72a',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: '9px', fontWeight: 800,
-          }}>100</div>
-          <span>Opportunity score</span>
-          <ChevronDown size={14} color="#65676b" />
+          width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid #dddfe2', borderRadius: '6px',
+          background: '#ffffff', cursor: 'pointer', flexShrink: 0,
+        }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+        >
+          <RefreshCw size={14} color="#65676b" />
         </button>
       </div>
 
@@ -112,12 +123,6 @@ const Header = () => {
           <CheckCircle2 size={14} color="#42b72a" />
           <span>Updated just now</span>
         </div>
-        <button style={{
-          padding: '6px', border: '1px solid #dddfe2', borderRadius: '6px',
-          background: '#fff', cursor: 'pointer', display: 'flex',
-        }}>
-          <RefreshCw size={14} color="#65676b" />
-        </button>
         <button style={{
           padding: '6px 14px', backgroundColor: '#e4e6eb', border: 'none',
           borderRadius: '6px', fontSize: '13px', fontWeight: 600,
