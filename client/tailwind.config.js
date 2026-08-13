@@ -29,6 +29,9 @@ export default {
           textSecondary: '#606770',
         },
       },
+      fontFamily: {
+        sans: ['"Optimistic 95"', 'system-ui', '-apple-system', 'sans-serif'],
+      },
     },
   },
   plugins: [],
