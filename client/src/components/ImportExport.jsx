@@ -108,6 +108,23 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
         }
       });
 
+      // Structural/linking keys synonyms fallback (since campaignId/adSetId are not visible columns)
+      const structuralFields = [
+        { key: 'campaignId', synonyms: ['campaignid', 'campaign id', 'campaign_id', 'parent campaign id', 'campaign'] },
+        { key: 'adSetId', synonyms: ['adsetid', 'ad set id', 'ad_set_id', 'parent ad set id', 'adset', 'ad set'] },
+        { key: 'adId', synonyms: ['adid', 'ad id', 'ad_id', 'ad'] },
+        { key: 'name', synonyms: ['name', 'campaign name', 'ad set name', 'ad name'] },
+        { key: 'status', synonyms: ['status', 'delivery'] }
+      ];
+
+      structuralFields.forEach((field) => {
+        rawHeaders.forEach((rawHeader, idx) => {
+          if (field.synonyms.includes(rawHeader)) {
+            headerMap[idx] = field.key;
+          }
+        });
+      });
+
       const parsedItems = [];
       for (let i = 1; i < rawRows.length; i++) {
         const row = rawRows[i];

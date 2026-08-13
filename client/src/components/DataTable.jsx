@@ -382,6 +382,23 @@ const DataTable = ({
     );
   }
 
+  const reachSum = useMemo(() => {
+    return data.reduce((sum, item) => sum + (Number(item.reach) || 0), 0);
+  }, [data]);
+
+  const impressionsSum = useMemo(() => {
+    return data.reduce((sum, item) => sum + (Number(item.impressions) || 0), 0);
+  }, [data]);
+
+  const amountSpentSum = useMemo(() => {
+    return data.reduce((sum, item) => sum + (Number(item.amountSpent) || 0), 0);
+  }, [data]);
+
+  const frequencyWeighted = useMemo(() => {
+    if (reachSum === 0) return 0;
+    return impressionsSum / reachSum;
+  }, [reachSum, impressionsSum]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#fff', overflow: 'hidden', flex: 1 }}>
       {/* Table */}
@@ -420,6 +437,103 @@ const DataTable = ({
               ))
             )}
           </tbody>
+          {data.length > 0 && (
+            <tfoot style={{ position: 'sticky', bottom: 0, backgroundColor: '#fff', zIndex: 4 }}>
+              <tr>
+                {table.getVisibleFlatColumns().map((col) => {
+                  const isSelect = col.id === 'select';
+                  const isStatus = col.id === 'status';
+                  const isName = col.id === 'name';
+                  const isReach = col.id === 'reach';
+                  const isImpressions = col.id === 'impressions';
+                  const isAmountSpent = col.id === 'amountSpent';
+                  const isFrequency = col.id === 'frequency';
+
+                  const colDef = columns.find(c => c.key === col.id);
+                  const isNumeric = colDef && ['number', 'currency', 'percentage'].includes(colDef.type);
+
+                  const commonStyle = {
+                    padding: '6px 8px',
+                    borderTop: '2px solid #dddfe2',
+                    borderBottom: '2px solid #dddfe2',
+                    borderRight: '1px solid #ebedf0',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    color: '#1c1e21',
+                    verticalAlign: 'top',
+                    backgroundColor: '#fff',
+                  };
+
+                  if (isSelect || isStatus) {
+                    return <td key={col.id} style={commonStyle} />;
+                  }
+
+                  if (isName) {
+                    return (
+                      <td key={col.id} style={{ ...commonStyle, textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '32px' }}>
+                          <span>Results from {total} {entityLabel}</span>
+                          <Info size={12} color="#8a8d91" style={{ cursor: 'help' }} />
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  if (isReach) {
+                    return (
+                      <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
+                          <span>{reachSum.toLocaleString('en-IN')}</span>
+                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Meta accounts</span>
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  if (isImpressions) {
+                    return (
+                      <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
+                          <span>{impressionsSum.toLocaleString('en-IN')}</span>
+                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Total</span>
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  if (isAmountSpent) {
+                    return (
+                      <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
+                          <span>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amountSpentSum)}</span>
+                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Total Spent</span>
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  if (isFrequency) {
+                    return (
+                      <td key={col.id} style={{ ...commonStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minHeight: '32px' }}>
+                          <span>{frequencyWeighted > 0 ? frequencyWeighted.toFixed(2) : '—'}</span>
+                          <span style={{ fontSize: '10px', color: '#8a8d91', fontWeight: 400, marginTop: '2px' }}>Per Meta account</span>
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td key={col.id} style={{ ...commonStyle, textAlign: isNumeric ? 'right' : 'left', color: '#8a8d91' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', minHeight: '32px', justifyContent: 'center' }}>
+                        <span>—</span>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
