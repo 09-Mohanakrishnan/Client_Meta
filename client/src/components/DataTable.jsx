@@ -437,15 +437,11 @@ const DataTable = ({
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>
-                {hg.headers.map((h, idx) => {
-                  const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
-                  const bgColor = isAlternate ? '#f7f8fa' : 'var(--meta-table-header-bg)';
-                  return (
-                    <th key={h.id} style={{ backgroundColor: bgColor }}>
-                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  );
-                })}
+                {hg.headers.map(h => (
+                  <th key={h.id} style={{ backgroundColor: 'var(--meta-table-header-bg)' }}>
+                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                ))}
               </tr>
             ))}
           </thead>
@@ -460,12 +456,12 @@ const DataTable = ({
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map(row => (
+              table.getRowModel().rows.map((row, rowIdx) => (
                 <tr key={row.id} className={row.getIsSelected() ? 'selected' : ''}>
-                  {row.getVisibleCells().map((cell, idx) => {
-                    const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
+                  {row.getVisibleCells().map(cell => {
+                    const isAlternateRow = rowIdx % 2 === 1;
                     const isSelected = row.getIsSelected();
-                    const bgColor = isSelected ? '#e7f3ff' : (isAlternate ? '#f9fafb' : '#ffffff');
+                    const bgColor = isSelected ? '#e7f3ff' : (isAlternateRow ? '#f9fafb' : '#ffffff');
                     return (
                       <td key={cell.id} style={{ backgroundColor: bgColor }}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -479,7 +475,7 @@ const DataTable = ({
           {data.length > 0 && (
             <tfoot style={{ position: 'sticky', bottom: 0, backgroundColor: '#fff', zIndex: 4 }}>
               <tr>
-                {table.getVisibleFlatColumns().map((col, idx) => {
+                {table.getVisibleFlatColumns().map((col) => {
                   const isSelect = col.id === 'select';
                   const isStatus = col.id === 'status';
                   const isName = col.id === 'name';
@@ -491,9 +487,6 @@ const DataTable = ({
                   const colDef = columns.find(c => c.key === col.id);
                   const isNumeric = colDef && ['number', 'currency', 'percentage'].includes(colDef.type);
 
-                  const isAlternate = idx >= 3 && (idx - 3) % 2 === 0;
-                  const cellBg = isAlternate ? '#f9fafb' : '#ffffff';
-
                   const commonStyle = {
                     padding: '6px 8px',
                     borderTop: '2px solid #dddfe2',
@@ -503,7 +496,7 @@ const DataTable = ({
                     fontSize: '12px',
                     color: '#1c1e21',
                     verticalAlign: 'top',
-                    backgroundColor: cellBg,
+                    backgroundColor: '#ffffff',
                   };
 
                   if (isSelect || isStatus) {
