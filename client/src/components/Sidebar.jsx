@@ -7,7 +7,7 @@ import {
   Columns,
   Users,
   ClipboardList,
-  LogOut,
+  Bug,
   HelpCircle,
   Bell,
   BarChart2,
@@ -88,18 +88,8 @@ const Sidebar = () => {
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 0', gap: '2px', borderTop: '1px solid #e4e6eb' }}>
         <button title="Help" style={iconBtnStyle}><HelpCircle size={17} strokeWidth={1.8} /></button>
         <button title="Settings" style={iconBtnStyle}><Settings size={17} strokeWidth={1.8} /></button>
-        <button title="Search" style={iconBtnStyle}><Search size={17} strokeWidth={1.8} /></button>
-        <div title={`${user?.name} (${user?.role})`} style={{
-          height: '28px', width: '28px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer',
-        }}>
-          {user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'OP'}
-        </div>
-        <button onClick={logout} title="Sign Out" style={{ ...iconBtnStyle, color: '#e74c3c' }}>
-          <LogOut size={16} strokeWidth={1.8} />
-        </button>
+        <button title={`${user?.name} (${user?.role})`} style={iconBtnStyle}><Search size={17} strokeWidth={1.8} /></button>
+        <button onClick={logout} title="Sign Out" style={iconBtnStyle}><Bug size={17} strokeWidth={1.8} /></button>
       </div>
     </aside>
   );
