@@ -162,10 +162,19 @@ const ImportExport = ({ entityType, columns, existingItems, onImportSuccess }) =
             // Parse numerical properties
             const colDef = columns.find((c) => c.key === mappedKey);
             if (colDef && ['number', 'currency', 'percentage'].includes(colDef.type)) {
-              const num = parseFloat(val);
+              const cleanVal = val.replace(/[₹$?\s,]/g, '');
+              const num = parseFloat(cleanVal);
               val = isNaN(num) ? 0 : num;
             } else if (colDef && colDef.type === 'boolean') {
               val = val.toLowerCase() === 'true' || val === '1' || val.toLowerCase() === 'yes';
+            } else if (mappedKey === 'reportingStarts' || mappedKey === 'reportingEnds') {
+              const dateParts = val.split('/');
+              if (dateParts.length === 3) {
+                const month = dateParts[0].padStart(2, '0');
+                const day = dateParts[1].padStart(2, '0');
+                const year = dateParts[2];
+                val = `${year}-${month}-${day}`;
+              }
             }
             item[mappedKey] = val;
           }

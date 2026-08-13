@@ -10,7 +10,6 @@ const campaignSchema = new mongoose.Schema(
     campaignId: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     delivery: {
@@ -66,6 +65,12 @@ const campaignSchema = new mongoose.Schema(
       type: String,
       enum: ['Active', 'Off', 'Payment error', 'Draft', 'Paused'],
       default: 'Draft',
+    },
+    reportingStarts: {
+      type: String,
+    },
+    reportingEnds: {
+      type: String,
     },
   },
   {

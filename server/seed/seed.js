@@ -50,6 +50,8 @@ const defaultCampaignColumns = [
   { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
   { key: 'ends', label: 'Ends', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
   { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+  { key: 'reportingStarts', label: 'Reporting Starts', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 13 },
+  { key: 'reportingEnds', label: 'Reporting Ends', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 14 },
 ].map(c => ({ ...c, entityType: 'campaign' }));
 
 const defaultAdSetColumns = [

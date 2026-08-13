@@ -39,18 +39,10 @@ export const getCampaigns = async (req, res) => {
       }
     }
 
-    // 3. Date Range Filter (CreatedAt) — uses explicit UTC to avoid server timezone issues
+    // 3. Date Range Filter (reportingStarts/reportingEnds)
     if (req.query.startDate && req.query.endDate) {
-      const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
-      const [ey, em, ed] = req.query.endDate.split('-').map(Number);
-
-      const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
-      const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
-
-      query.createdAt = {
-        $gte: startUTC,
-        $lte: endUTC,
-      };
+      query.reportingStarts = { $lte: req.query.endDate };
+      query.reportingEnds = { $gte: req.query.startDate };
     }
 
     // 4. Advanced Filters
@@ -87,18 +79,68 @@ export const getCampaigns = async (req, res) => {
       }
     }
 
+    // Deduplicate and select the best-matching date range for each unique campaignId
+    let campaigns = await Campaign.find(query);
+
+    if (req.query.startDate && req.query.endDate) {
+      const filterStart = new Date(req.query.startDate);
+      const filterEnd = new Date(req.query.endDate);
+
+      const campaignMap = new Map();
+      campaigns.forEach((camp) => {
+        const id = camp.campaignId;
+        if (camp.reportingStarts && camp.reportingEnds) {
+          const cStart = new Date(camp.reportingStarts);
+          const cEnd = new Date(camp.reportingEnds);
+
+          const startDiff = Math.abs(cStart - filterStart);
+          const endDiff = Math.abs(cEnd - filterEnd);
+          const totalDiff = startDiff + endDiff;
+
+          const existing = campaignMap.get(id);
+          if (!existing || totalDiff < existing.diff) {
+            campaignMap.set(id, { doc: camp, diff: totalDiff });
+          }
+        } else {
+          const existing = campaignMap.get(id);
+          if (!existing) {
+            campaignMap.set(id, { doc: camp, diff: Infinity });
+          }
+        }
+      });
+
+      campaigns = Array.from(campaignMap.values()).map(item => item.doc);
+    } else {
+      // Deduplicate by campaignId, taking the first match
+      const campaignMap = new Map();
+      campaigns.forEach((camp) => {
+        const id = camp.campaignId;
+        if (!campaignMap.has(id)) {
+          campaignMap.set(id, camp);
+        }
+      });
+      campaigns = Array.from(campaignMap.values());
+    }
+
     // Sorting
     const sortBy = req.query.sortBy || 'createdAt';
     const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
-    const sort = { [sortBy]: sortOrder };
+    campaigns.sort((a, b) => {
+      const aVal = a[sortBy] ?? '';
+      const bVal = b[sortBy] ?? '';
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return (aVal - bVal) * sortOrder;
+      }
+      return String(aVal).localeCompare(String(bVal)) * sortOrder;
+    });
 
-    const campaigns = await Campaign.find(query).sort(sort).skip(skip).limit(limit);
-    const total = await Campaign.countDocuments(query);
+    const total = campaigns.length;
+    const paginatedCampaigns = campaigns.slice(skip, skip + limit);
 
     res.json({
       success: true,
       data: {
-        campaigns,
+        campaigns: paginatedCampaigns,
         total,
         page,
         pages: Math.ceil(total / limit),

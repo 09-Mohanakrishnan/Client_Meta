@@ -17,7 +17,7 @@
   --meta-table-header-bg: #f5f6f7;
   --meta-table-row-hover: #f2f3f5;
   --meta-row-height: 44px;
-  --meta-font: 'Optimistic 95', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  --meta-font: 'Optimistic 95', 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 @layer base {
