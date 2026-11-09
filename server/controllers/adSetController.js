@@ -2,7 +2,7 @@ import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
 import Campaign from '../models/Campaign.js';
 import AdPerformance from '../models/AdPerformance.js';
-import { enrichWithPerformance } from '../services/performanceService.js';
+import { enrichWithPerformance, syncPerformanceUpdate } from '../services/performanceService.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -20,6 +20,7 @@ export const getAdSets = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = {};
+    const andClauses = [];
 
     // Filter by Campaign string ID (for drilldown from Campaigns)
     if (req.query.campaignId) {
@@ -29,10 +30,16 @@ export const getAdSets = async (req, res) => {
     // 1. Search (filters by name or adSetId)
     if (req.query.search) {
       const searchRegex = new RegExp(req.query.search, 'i');
-      query.$or = [
-        { name: { $regex: searchRegex } },
-        { adSetId: { $regex: searchRegex } },
-      ];
+      andClauses.push({
+        $or: [
+          { name: { $regex: searchRegex } },
+          { adSetId: { $regex: searchRegex } },
+        ],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      query.$and = andClauses;
     }
 
     // 2. Status Filter
@@ -87,6 +94,11 @@ export const getAdSets = async (req, res) => {
       req.query.endDate
     );
 
+    // If a specific date range is requested, only list ad sets that have data for that range
+    if (req.query.startDate && req.query.endDate) {
+      adsets = adsets.filter(a => a.hasDataForRange);
+    }
+
     // Apply delivery criteria filter if "Had delivery" is selected
     if (req.query.status === 'Had delivery') {
       adsets = adsets.filter(a => (a.reach > 0 || a.impressions > 0 || a.amountSpent > 0));
@@ -113,15 +125,42 @@ export const getAdSets = async (req, res) => {
     }
 
     const total = adsets.length;
+    const summary = adsets.reduce((acc, adset) => {
+      Object.entries(adset).forEach(([key, value]) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          acc.numericTotals[key] = (acc.numericTotals[key] || 0) + value;
+        }
+      });
+      acc.results += Number(adset.results) || 0;
+      acc.reach += Number(adset.reach) || 0;
+      acc.impressions += Number(adset.impressions) || 0;
+      acc.amountSpent += Number(adset.amountSpent) || 0;
+      acc.budget += Number(adset.budget) || 0;
+      return acc;
+    }, { results: 0, reach: 0, impressions: 0, amountSpent: 0, budget: 0, numericTotals: {} });
+    summary.totalSpend = summary.amountSpent;
+    summary.totalReach = summary.reach;
+    summary.totalImpressions = summary.impressions;
+    summary.totalResults = summary.results;
+    summary.costPerResultAvg = summary.results > 0 ? parseFloat((summary.amountSpent / summary.results).toFixed(2)) : 0;
+    summary.frequencyWeighted = summary.reach > 0 ? parseFloat((summary.impressions / summary.reach).toFixed(2)) : 0;
     const paginatedAdSets = adsets.slice(skip, skip + limit);
+
+    const noDataForDateRange = Boolean(req.query.startDate && req.query.endDate && total === 0);
+    const dateRangeMessage = noDataForDateRange
+      ? `No ad sets had delivery or performance data for the selected date range (${req.query.startDate} to ${req.query.endDate}). Try selecting a broader range or 'Last 90 days'.`
+      : null;
 
     res.json({
       success: true,
       data: {
         adsets: paginatedAdSets,
         total,
+        summary,
         page,
         pages: Math.ceil(total / limit),
+        noDataForDateRange,
+        dateRangeMessage,
       },
     });
   } catch (error) {
@@ -191,16 +230,54 @@ export const updateAdSet = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ad Set not found' });
     }
 
+    const { startDate, endDate, ...fieldsToUpdate } = req.body;
     const oldValue = adset.toObject();
 
-    // Set fields dynamically
-    Object.entries(req.body).forEach(([key, value]) => {
-      if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
-        adset.set(key, value);
+    // Separate data validation for numeric fields
+    const numericFields = ['budget', 'results', 'reach', 'impressions', 'amountSpent', 'costPerResult', 'frequency'];
+    for (const [key, value] of Object.entries(fieldsToUpdate)) {
+      if (numericFields.includes(key)) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) {
+          return res.status(400).json({ success: false, message: `Invalid numeric value for ${key}` });
+        }
+        adset.set(key, num);
+      } else if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
+        if (key === 'budgetType' && (value === '0' || value === 0 || !['Daily', 'Lifetime'].includes(value))) {
+          adset.set(key, 'Daily');
+        } else {
+          adset.set(key, value);
+        }
       }
-    });
+    }
+
+    if (adset.budgetType !== 'Daily' && adset.budgetType !== 'Lifetime') {
+      adset.budgetType = 'Daily';
+    }
+
+    // Auto-calculate costPerResult and frequency if metrics are present
+    if (adset.results > 0 && adset.amountSpent > 0 && fieldsToUpdate.costPerResult === undefined) {
+      adset.costPerResult = parseFloat((adset.amountSpent / adset.results).toFixed(2));
+    }
+    if (adset.reach > 0 && adset.impressions > 0 && fieldsToUpdate.frequency === undefined) {
+      adset.frequency = parseFloat((adset.impressions / adset.reach).toFixed(2));
+    }
 
     await adset.save();
+
+    // Sync edited performance metrics to AdPerformance records accurately
+    const perfUpdates = {};
+    numericFields.forEach(k => {
+      if (fieldsToUpdate[k] !== undefined) perfUpdates[k] = adset[k];
+    });
+
+    const setFilter = { adSetId: adset.adSetId, adId: { $in: ['', null] } };
+    await syncPerformanceUpdate({
+      filter: setFilter,
+      perfUpdates,
+      startDate,
+      endDate,
+    });
 
     // Log changes
     const changedFields = Object.keys(req.body).filter(k => k !== '_id');

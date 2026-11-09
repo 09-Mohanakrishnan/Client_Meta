@@ -309,6 +309,102 @@ const seedAll = async () => {
       }
     }
 
+    // Also generate daily performance records for the last 90 days for active campaigns, ad sets, and ads
+    console.log('Generating daily records for the last 90 days...');
+    const now = new Date();
+    const dailyRecordsToInsert = [];
+
+    const activeCampaigns = await Campaign.find({ delivery: 'Active' });
+    for (const c of activeCampaigns) {
+      const activeSets = await AdSet.find({ campaignId: c.campaignId });
+      for (const s of activeSets) {
+        const activeAds = await Ad.find({ adSetId: s.adSetId });
+        for (let d = 0; d < 90; d++) {
+          const dayDate = new Date(now);
+          dayDate.setDate(dayDate.getDate() - d);
+          const dateStr = dayDate.toISOString().split('T')[0];
+
+          // Daily values
+          const variance = 0.75 + Math.random() * 0.5;
+          const setSpent = parseFloat(((s.budget * 0.9) * variance).toFixed(2));
+          const setResults = Math.max(1, Math.round((setSpent / 3.2) * variance));
+          const setReach = Math.round(setResults * 20 * variance);
+          const setImpr = Math.round(setReach * 1.35);
+
+          // Add AdSet daily record
+          dailyRecordsToInsert.push({
+            campaignId: c.campaignId,
+            adSetId: s.adSetId,
+            adId: '',
+            isDaily: true,
+            date: dateStr,
+            results: setResults,
+            resultType: 'Link clicks',
+            reach: setReach,
+            impressions: setImpr,
+            costPerResult: parseFloat((setSpent / setResults).toFixed(2)),
+            amountSpent: setSpent,
+            frequency: parseFloat((setImpr / setReach).toFixed(2)),
+          });
+
+          // Add Ad daily records
+          for (const a of activeAds) {
+            const adSpent = parseFloat((setSpent / activeAds.length).toFixed(2));
+            const adRes = Math.max(1, Math.round(setResults / activeAds.length));
+            const adReach = Math.round(setReach / activeAds.length);
+            const adImpr = Math.round(setImpr / activeAds.length);
+            dailyRecordsToInsert.push({
+              campaignId: c.campaignId,
+              adSetId: s.adSetId,
+              adId: a.adId,
+              isDaily: true,
+              date: dateStr,
+              results: adRes,
+              resultType: 'Link clicks',
+              reach: adReach,
+              impressions: adImpr,
+              costPerResult: parseFloat((adSpent / adRes).toFixed(2)),
+              amountSpent: adSpent,
+              frequency: parseFloat((adImpr / adReach).toFixed(2)),
+            });
+          }
+        }
+      }
+
+      // Add Campaign daily records (sum of sets)
+      for (let d = 0; d < 90; d++) {
+        const dayDate = new Date(now);
+        dayDate.setDate(dayDate.getDate() - d);
+        const dateStr = dayDate.toISOString().split('T')[0];
+
+        const setsForDay = dailyRecordsToInsert.filter(r => r.campaignId === c.campaignId && r.date === dateStr && r.adId === '');
+        const cResults = setsForDay.reduce((sum, r) => sum + r.results, 0);
+        const cSpent = parseFloat(setsForDay.reduce((sum, r) => sum + r.amountSpent, 0).toFixed(2));
+        const cReach = setsForDay.reduce((sum, r) => sum + r.reach, 0);
+        const cImpr = setsForDay.reduce((sum, r) => sum + r.impressions, 0);
+
+        dailyRecordsToInsert.push({
+          campaignId: c.campaignId,
+          adSetId: '',
+          adId: '',
+          isDaily: true,
+          date: dateStr,
+          results: cResults,
+          resultType: 'Link clicks',
+          reach: cReach,
+          impressions: cImpr,
+          costPerResult: cResults > 0 ? parseFloat((cSpent / cResults).toFixed(2)) : 0,
+          amountSpent: cSpent,
+          frequency: cReach > 0 ? parseFloat((cImpr / cReach).toFixed(2)) : 1.0,
+        });
+      }
+    }
+
+    if (dailyRecordsToInsert.length > 0) {
+      await AdPerformance.insertMany(dailyRecordsToInsert);
+      console.log(`Seeded ${dailyRecordsToInsert.length} daily performance records.`);
+    }
+
     const cCount = await Campaign.countDocuments();
     const sCount = await AdSet.countDocuments();
     const aCount = await Ad.countDocuments();

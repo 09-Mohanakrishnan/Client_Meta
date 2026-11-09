@@ -34,6 +34,7 @@ const adSetSchema = new mongoose.Schema(
       type: String,
       enum: ['Daily', 'Lifetime'],
       default: 'Daily',
+      set: (v) => (!v || v === '0' || v === 0 || !['Daily', 'Lifetime'].includes(v) ? 'Daily' : v),
     },
     results: {
       type: Number,
@@ -59,6 +60,10 @@ const adSetSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    frequency: {
+      type: Number,
+      default: 1.0,
+    },
     startDate: {
       type: String,
       default: '',
@@ -81,6 +86,13 @@ const adSetSchema = new mongoose.Schema(
 
 // Index for text search
 adSetSchema.index({ name: 'text', adSetId: 'text' });
+
+adSetSchema.pre('validate', function(next) {
+  if (!this.budgetType || this.budgetType === '0' || this.budgetType === 0 || !['Daily', 'Lifetime'].includes(this.budgetType)) {
+    this.budgetType = 'Daily';
+  }
+  next();
+});
 
 const AdSet = mongoose.model('AdSet', adSetSchema);
 export default AdSet;

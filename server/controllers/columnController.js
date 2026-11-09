@@ -12,7 +12,79 @@ export const getColumns = async (req, res) => {
   }
 
   try {
-    const columns = await ColumnConfig.find({ entityType }).sort({ order: 1 });
+    let columns = await ColumnConfig.find({ entityType }).sort({ order: 1 }).lean();
+    if (!columns || columns.length === 0) {
+      if (entityType === 'campaign') {
+        columns = [
+          { key: 'campaignId', label: 'Campaign ID', type: 'text', visible: true, editable: false, sortable: true, filterable: true, order: 0 },
+          { key: 'name', label: 'Campaign Name', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 1 },
+          { key: 'delivery', label: 'Delivery', type: 'status', visible: true, editable: true, sortable: true, filterable: true, order: 2 },
+          { key: 'budget', label: 'Budget', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 3 },
+          { key: 'budgetType', label: 'Budget Type', type: 'select', visible: true, editable: true, sortable: true, filterable: true, order: 4 },
+          { key: 'results', label: 'Results', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 5 },
+          { key: 'resultType', label: 'Result Type', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 6 },
+          { key: 'reach', label: 'Reach', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 7 },
+          { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
+          { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
+          { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
+          { key: 'ends', label: 'Ends', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
+          { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+        ];
+      } else if (entityType === 'adset') {
+        columns = [
+          { key: 'adSetId', label: 'Ad Set ID', type: 'text', visible: true, editable: false, sortable: true, filterable: true, order: 0 },
+          { key: 'name', label: 'Ad Set Name', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 1 },
+          { key: 'delivery', label: 'Delivery', type: 'status', visible: true, editable: true, sortable: true, filterable: true, order: 2 },
+          { key: 'budget', label: 'Budget', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 3 },
+          { key: 'budgetType', label: 'Budget Type', type: 'select', visible: true, editable: true, sortable: true, filterable: true, order: 4 },
+          { key: 'results', label: 'Results', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 5 },
+          { key: 'resultType', label: 'Result Type', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 6 },
+          { key: 'reach', label: 'Reach', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 7 },
+          { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
+          { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
+          { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
+          { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
+          { key: 'startDate', label: 'Start Date', type: 'date', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+          { key: 'endDate', label: 'End Date', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 13 },
+        ];
+      } else if (entityType === 'ad') {
+        columns = [
+          { key: 'adId', label: 'Ad ID', type: 'text', visible: true, editable: false, sortable: true, filterable: true, order: 0 },
+          { key: 'name', label: 'Ad Name', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 1 },
+          { key: 'image', label: 'Image Preview', type: 'image', visible: true, editable: true, sortable: false, filterable: false, order: 2 },
+          { key: 'delivery', label: 'Delivery', type: 'status', visible: true, editable: true, sortable: true, filterable: true, order: 3 },
+          { key: 'adSetName', label: 'Ad Set Name', type: 'text', visible: true, editable: false, sortable: true, filterable: true, order: 4 },
+          { key: 'budget', label: 'Budget', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 5 },
+          { key: 'results', label: 'Results', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 6 },
+          { key: 'resultType', label: 'Result Type', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 7 },
+          { key: 'reach', label: 'Reach', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
+          { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
+          { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
+          { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
+          { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+        ];
+      }
+    } else {
+      // Ensure frequency is included in adset if missing
+      if (entityType === 'adset' && !columns.some(c => c.key === 'frequency')) {
+        columns.push({
+          key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 11,
+        });
+      }
+      // Ensure budget and frequency are included in ad if missing
+      if (entityType === 'ad') {
+        if (!columns.some(c => c.key === 'budget')) {
+          columns.splice(5, 0, {
+            key: 'budget', label: 'Budget', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 5,
+          });
+        }
+        if (!columns.some(c => c.key === 'frequency')) {
+          columns.push({
+            key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 12,
+          });
+        }
+      }
+    }
     res.json({
       success: true,
       data: columns,

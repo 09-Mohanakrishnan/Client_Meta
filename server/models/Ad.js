@@ -79,12 +79,36 @@ const adSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    frequency: {
+      type: Number,
+      default: 1.0,
+    },
     status: {
       type: String,
       enum: ['Active', 'Off', 'Payment error', 'Draft', 'Paused'],
       default: 'Draft',
     },
     image: {
+      type: String,
+      default: '',
+    },
+    imageUrl: {
+      type: String,
+      default: '',
+    },
+    video: {
+      type: String,
+      default: '',
+    },
+    videoUrl: {
+      type: String,
+      default: '',
+    },
+    headline: {
+      type: String,
+      default: '',
+    },
+    primaryText: {
       type: String,
       default: '',
     },

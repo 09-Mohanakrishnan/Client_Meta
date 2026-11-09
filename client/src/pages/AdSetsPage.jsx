@@ -53,6 +53,16 @@ const AdSetsPage = () => {
     setSearchInput(search);
   }, [search]);
 
+  // Reset to page 1 whenever date range changes
+  useEffect(() => {
+    const currentPage = searchParams.get('page');
+    if (currentPage && currentPage !== '1') {
+      const params = new URLSearchParams(searchParams);
+      params.set('page', '1');
+      setSearchParams(params);
+    }
+  }, [dateRange.startDate, dateRange.endDate]);
+
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
     params.set(key, value);
@@ -102,6 +112,8 @@ const AdSetsPage = () => {
   const adsets = adsetRes?.adsets || [];
   const total = adsetRes?.total || 0;
   const pages = adsetRes?.pages || 1;
+  const summary = adsetRes?.summary || null;
+  const dateRangeMessage = adsetRes?.dateRangeMessage || null;
 
   // 3. Mutations
   const createAdSetMutation = useMutation({
@@ -121,11 +133,65 @@ const AdSetsPage = () => {
 
   const inlineEditMutation = useMutation({
     mutationFn: async ({ id, key, value }) => {
-      const res = await API.patch(`/adsets/${id}`, { [key]: value });
+      const res = await API.patch(`/adsets/${id}`, {
+        [key]: value,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
       return res.data;
     },
+    onMutate: async ({ id, key, value }) => {
+      await queryClient.cancelQueries({ queryKey: ['adsets'] });
+      queryClient.setQueriesData({ queryKey: ['adsets'] }, (old) => {
+        if (!old) return old;
+        const adsetsList = old.adsets || [];
+        const oldItem = adsetsList.find(s => s._id === id);
+        const oldVal = Number(oldItem?.[key]) || 0;
+        const newVal = typeof value === 'number' ? value : (parseFloat(value) || value);
+        const diff = (typeof newVal === 'number' && !isNaN(newVal)) ? newVal - oldVal : 0;
+
+        const updatedAdSets = adsetsList.map(s => {
+          if (s._id !== id) return s;
+          const updated = { ...s, [key]: newVal };
+          if (updated.results > 0 && updated.amountSpent > 0) {
+            updated.costPerResult = parseFloat((updated.amountSpent / updated.results).toFixed(2));
+          }
+          if (updated.reach > 0 && updated.impressions > 0) {
+            updated.frequency = parseFloat((updated.impressions / updated.reach).toFixed(2));
+          }
+          return updated;
+        });
+
+        const updatedSummary = old.summary ? {
+          ...old.summary,
+          [key]: (Number(old.summary[key]) || 0) + diff,
+          ...(key === 'results' ? { totalResults: (Number(old.summary.totalResults ?? old.summary.results) || 0) + diff } : {}),
+          ...(key === 'reach' ? { totalReach: (Number(old.summary.totalReach ?? old.summary.reach) || 0) + diff } : {}),
+          ...(key === 'impressions' ? { totalImpressions: (Number(old.summary.totalImpressions ?? old.summary.impressions) || 0) + diff } : {}),
+          ...(key === 'amountSpent' ? { totalSpend: parseFloat(((Number(old.summary.totalSpend ?? old.summary.amountSpent) || 0) + diff).toFixed(2)) } : {}),
+          numericTotals: {
+            ...(old.summary.numericTotals || {}),
+            [key]: (Number(old.summary.numericTotals?.[key]) || 0) + diff,
+          },
+        } : null;
+
+        if (updatedSummary) {
+          if (updatedSummary.results > 0 && updatedSummary.amountSpent > 0) {
+            updatedSummary.costPerResultAvg = parseFloat((updatedSummary.amountSpent / updatedSummary.results).toFixed(2));
+          }
+          if (updatedSummary.reach > 0 && updatedSummary.impressions > 0) {
+            updatedSummary.frequencyWeighted = parseFloat((updatedSummary.impressions / updatedSummary.reach).toFixed(2));
+          }
+        }
+
+        return {
+          ...old,
+          adsets: updatedAdSets,
+          summary: updatedSummary || old.summary,
+        };
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adsets'] });
       toast.success('Ad Set updated');
     },
     onError: (err) => {
@@ -263,6 +329,8 @@ const AdSetsPage = () => {
           page={page}
           pages={pages}
           total={total}
+          summary={summary}
+          dateRangeMessage={dateRangeMessage}
           onPageChange={(nextPage) => updateParam('page', String(nextPage))}
           sortBy={sortBy}
           sortOrder={sortOrder}

@@ -2,7 +2,7 @@ import Campaign from '../models/Campaign.js';
 import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
 import AdPerformance from '../models/AdPerformance.js';
-import { enrichWithPerformance, calculateSummaryMetrics } from '../services/performanceService.js';
+import { enrichWithPerformance, calculateSummaryMetrics, syncPerformanceUpdate } from '../services/performanceService.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -82,6 +82,11 @@ export const getCampaigns = async (req, res) => {
       req.query.endDate
     );
 
+    // If a specific date range is requested, only list campaigns that have data for that range
+    if (req.query.startDate && req.query.endDate) {
+      campaigns = campaigns.filter(c => c.hasDataForRange);
+    }
+
     // Apply delivery criteria filter if "Had delivery" is selected
     if (req.query.status === 'Had delivery') {
       campaigns = campaigns.filter(c => (c.reach > 0 || c.impressions > 0 || c.amountSpent > 0));
@@ -110,12 +115,32 @@ export const getCampaigns = async (req, res) => {
     const total = campaigns.length;
     const paginatedCampaigns = campaigns.slice(skip, skip + limit);
 
-    // Summary calculation for overview
-    const summary = await calculateSummaryMetrics(
-      req.query.startDate,
-      req.query.endDate,
-      campaigns.map(c => c.campaignId)
-    );
+    // Summary calculation across all matching campaigns (across all pages)
+    const summary = campaigns.reduce((acc, campaign) => {
+      Object.entries(campaign).forEach(([key, value]) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          acc.numericTotals[key] = (acc.numericTotals[key] || 0) + value;
+        }
+      });
+      acc.results += Number(campaign.results) || 0;
+      acc.reach += Number(campaign.reach) || 0;
+      acc.impressions += Number(campaign.impressions) || 0;
+      acc.amountSpent += Number(campaign.amountSpent) || 0;
+      acc.budget += Number(campaign.budget) || 0;
+      return acc;
+    }, { results: 0, reach: 0, impressions: 0, amountSpent: 0, budget: 0, numericTotals: {} });
+
+    summary.totalSpend = summary.amountSpent;
+    summary.totalReach = summary.reach;
+    summary.totalImpressions = summary.impressions;
+    summary.totalResults = summary.results;
+    summary.costPerResultAvg = summary.results > 0 ? parseFloat((summary.amountSpent / summary.results).toFixed(2)) : 0;
+    summary.frequencyWeighted = summary.reach > 0 ? parseFloat((summary.impressions / summary.reach).toFixed(2)) : 0;
+
+    const noDataForDateRange = Boolean(req.query.startDate && req.query.endDate && total === 0);
+    const dateRangeMessage = noDataForDateRange
+      ? `No campaigns had delivery or performance data for the selected date range (${req.query.startDate} to ${req.query.endDate}). Try selecting a broader range or 'Last 90 days'.`
+      : null;
 
     res.json({
       success: true,
@@ -125,6 +150,8 @@ export const getCampaigns = async (req, res) => {
         page,
         pages: Math.ceil(total / limit),
         summary,
+        noDataForDateRange,
+        dateRangeMessage,
       },
     });
   } catch (error) {
@@ -194,17 +221,54 @@ export const updateCampaign = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Campaign not found' });
     }
 
+    const { startDate, endDate, ...fieldsToUpdate } = req.body;
     const oldValue = campaign.toObject();
 
-    // Dynamically assign all keys in body to model (to support dynamic fields)
-    Object.entries(req.body).forEach(([key, value]) => {
-      // Don't modify internal Mongoose fields
-      if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
-        campaign.set(key, value);
+    // Separate data validation for numeric fields
+    const numericFields = ['budget', 'results', 'reach', 'impressions', 'amountSpent', 'costPerResult', 'frequency'];
+    for (const [key, value] of Object.entries(fieldsToUpdate)) {
+      if (numericFields.includes(key)) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) {
+          return res.status(400).json({ success: false, message: `Invalid numeric value for ${key}` });
+        }
+        campaign.set(key, num);
+      } else if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
+        if (key === 'budgetType' && (value === '0' || value === 0 || !['Daily', 'Lifetime'].includes(value))) {
+          campaign.set(key, 'Daily');
+        } else {
+          campaign.set(key, value);
+        }
       }
-    });
+    }
+
+    if (campaign.budgetType !== 'Daily' && campaign.budgetType !== 'Lifetime') {
+      campaign.budgetType = 'Daily';
+    }
+
+    // Auto-calculate costPerResult and frequency if metrics are present
+    if (campaign.results > 0 && campaign.amountSpent > 0 && fieldsToUpdate.costPerResult === undefined) {
+      campaign.costPerResult = parseFloat((campaign.amountSpent / campaign.results).toFixed(2));
+    }
+    if (campaign.reach > 0 && campaign.impressions > 0 && fieldsToUpdate.frequency === undefined) {
+      campaign.frequency = parseFloat((campaign.impressions / campaign.reach).toFixed(2));
+    }
 
     await campaign.save();
+
+    // Sync edited performance metrics to AdPerformance records accurately
+    const perfUpdates = {};
+    numericFields.forEach(k => {
+      if (fieldsToUpdate[k] !== undefined) perfUpdates[k] = campaign[k];
+    });
+
+    const campFilter = { campaignId: campaign.campaignId, adSetId: { $in: ['', null] }, adId: { $in: ['', null] } };
+    await syncPerformanceUpdate({
+      filter: campFilter,
+      perfUpdates,
+      startDate,
+      endDate,
+    });
 
     // Log individual field changes or bulk update
     const changedFields = Object.keys(req.body).filter(k => k !== '_id');

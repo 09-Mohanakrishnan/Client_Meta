@@ -59,6 +59,11 @@ const InlineEditableCell = ({
             style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}>
             {['Active', 'Off', 'Payment error', 'Draft', 'Paused'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+        ) : columnKey === 'budgetType' || columnType === 'select' ? (
+          <select ref={inputRef} value={(!value || value === '0' || value === 0) ? 'Daily' : value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown}
+            style={{ flex: 1, border: '1px solid #dddfe2', borderRadius: '4px', padding: '2px 4px', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}>
+            {['Daily', 'Lifetime'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         ) : columnType === 'boolean' ? (
           <input ref={inputRef} type="checkbox" checked={!!value} onChange={(e) => setValue(e.target.checked)} onKeyDown={handleKeyDown}
             style={{ width: '16px', height: '16px' }} />
@@ -126,6 +131,8 @@ const renderFormattedValue = (value, type) => {
       return new Date(value).toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     case 'boolean':
       return value ? 'Yes' : 'No';
+    case 'select':
+      return (!value || value === '0' || value === 0) ? 'Daily' : String(value);
     case 'status': {
       let dotColor = '#65676b';
       if (value === 'Active') dotColor = '#42b72a';

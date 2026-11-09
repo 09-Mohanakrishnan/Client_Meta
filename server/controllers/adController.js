@@ -2,7 +2,7 @@ import Ad from '../models/Ad.js';
 import AdSet from '../models/AdSet.js';
 import Campaign from '../models/Campaign.js';
 import AdPerformance from '../models/AdPerformance.js';
-import { enrichWithPerformance } from '../services/performanceService.js';
+import { enrichWithPerformance, syncPerformanceUpdate } from '../services/performanceService.js';
 import { logActivity } from '../services/auditLogger.js';
 
 // Helper to generate unique entity ID
@@ -21,6 +21,8 @@ export const getAds = async (req, res) => {
 
     const query = {};
 
+    const andClauses = [];
+
     // Filter by campaignId or adSetId (for drilldowns)
     if (req.query.campaignId) {
       query.campaignId = req.query.campaignId;
@@ -32,10 +34,50 @@ export const getAds = async (req, res) => {
     // 1. Search (filters by name or adId)
     if (req.query.search) {
       const searchRegex = new RegExp(req.query.search, 'i');
-      query.$or = [
-        { name: { $regex: searchRegex } },
-        { adId: { $regex: searchRegex } },
-      ];
+      andClauses.push({
+        $or: [
+          { name: { $regex: searchRegex } },
+          { adId: { $regex: searchRegex } },
+        ],
+      });
+    }
+
+    // Date range filter using reportDate, reportingStarts/reportingEnds, and createdAt
+    if (req.query.startDate && req.query.endDate) {
+      if (!req.query.campaignId && !req.query.adSetId) {
+        const [sy, sm, sd] = req.query.startDate.split('-').map(Number);
+        const [ey, em, ed] = req.query.endDate.split('-').map(Number);
+        const startUTC = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0));
+        const endUTC = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999));
+
+        andClauses.push({
+          $or: [
+            {
+              reportingStarts: { $lte: req.query.endDate },
+              reportingEnds: { $gte: req.query.startDate },
+            },
+            {
+              createdAt: { $gte: startUTC, $lte: endUTC },
+            },
+            {
+              reportDate: { $gte: req.query.startDate, $lte: req.query.endDate },
+            },
+            {
+              reportingStarts: { $exists: false },
+            },
+            {
+              reportingStarts: null,
+            },
+            {
+              reportingStarts: '',
+            },
+          ],
+        });
+      }
+    }
+
+    if (andClauses.length > 0) {
+      query.$and = andClauses;
     }
 
     // 2. Status Filter
@@ -90,6 +132,11 @@ export const getAds = async (req, res) => {
       req.query.endDate
     );
 
+    // If a specific date range is requested, only list ads that have data for that range
+    if (req.query.startDate && req.query.endDate) {
+      ads = ads.filter(a => a.hasDataForRange);
+    }
+
     // Apply delivery criteria filter if "Had delivery" is selected
     if (req.query.status === 'Had delivery') {
       ads = ads.filter(a => (a.reach > 0 || a.impressions > 0 || a.amountSpent > 0));
@@ -118,13 +165,43 @@ export const getAds = async (req, res) => {
     const total = ads.length;
     const paginatedAds = ads.slice(skip, skip + limit);
 
+    // Summary calculation across all matching ads (across all pages)
+    const summary = ads.reduce((acc, ad) => {
+      Object.entries(ad).forEach(([key, value]) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          acc.numericTotals[key] = (acc.numericTotals[key] || 0) + value;
+        }
+      });
+      acc.results += Number(ad.results) || 0;
+      acc.reach += Number(ad.reach) || 0;
+      acc.impressions += Number(ad.impressions) || 0;
+      acc.amountSpent += Number(ad.amountSpent) || 0;
+      acc.budget += Number(ad.budget) || 0;
+      return acc;
+    }, { results: 0, reach: 0, impressions: 0, amountSpent: 0, budget: 0, numericTotals: {} });
+
+    summary.totalSpend = summary.amountSpent;
+    summary.totalReach = summary.reach;
+    summary.totalImpressions = summary.impressions;
+    summary.totalResults = summary.results;
+    summary.costPerResultAvg = summary.results > 0 ? parseFloat((summary.amountSpent / summary.results).toFixed(2)) : 0;
+    summary.frequencyWeighted = summary.reach > 0 ? parseFloat((summary.impressions / summary.reach).toFixed(2)) : 0;
+
+    const noDataForDateRange = Boolean(req.query.startDate && req.query.endDate && total === 0);
+    const dateRangeMessage = noDataForDateRange
+      ? `No ads had delivery or performance data for the selected date range (${req.query.startDate} to ${req.query.endDate}). Try selecting a broader range or 'Last 90 days'.`
+      : null;
+
     res.json({
       success: true,
       data: {
         ads: paginatedAds,
         total,
+        summary,
         page,
         pages: Math.ceil(total / limit),
+        noDataForDateRange,
+        dateRangeMessage,
       },
     });
   } catch (error) {
@@ -194,16 +271,45 @@ export const updateAd = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ad not found' });
     }
 
+    const { startDate, endDate, ...fieldsToUpdate } = req.body;
     const oldValue = ad.toObject();
 
-    // Set fields dynamically
-    Object.entries(req.body).forEach(([key, value]) => {
-      if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
+    // Separate data validation for numeric fields
+    const numericFields = ['budget', 'results', 'reach', 'impressions', 'amountSpent', 'costPerResult', 'frequency'];
+    for (const [key, value] of Object.entries(fieldsToUpdate)) {
+      if (numericFields.includes(key)) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) {
+          return res.status(400).json({ success: false, message: `Invalid numeric value for ${key}` });
+        }
+        ad.set(key, num);
+      } else if (key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt') {
         ad.set(key, value);
       }
-    });
+    }
+
+    // Auto-calculate costPerResult and frequency if metrics are present
+    if (ad.results > 0 && ad.amountSpent > 0 && fieldsToUpdate.costPerResult === undefined) {
+      ad.costPerResult = parseFloat((ad.amountSpent / ad.results).toFixed(2));
+    }
+    if (ad.reach > 0 && ad.impressions > 0 && fieldsToUpdate.frequency === undefined) {
+      ad.frequency = parseFloat((ad.impressions / ad.reach).toFixed(2));
+    }
 
     await ad.save();
+
+    // Sync edited performance metrics to AdPerformance records accurately
+    const perfUpdates = {};
+    numericFields.forEach(k => {
+      if (fieldsToUpdate[k] !== undefined) perfUpdates[k] = ad[k];
+    });
+
+    await syncPerformanceUpdate({
+      filter: { adId: ad.adId },
+      perfUpdates,
+      startDate,
+      endDate,
+    });
 
     // Log changes
     const changedFields = Object.keys(req.body).filter(k => k !== '_id');

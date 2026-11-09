@@ -3,45 +3,52 @@ import React, { createContext, useContext, useState } from 'react';
 const DateRangeContext = createContext(null);
 
 export const DateRangeProvider = ({ children }) => {
-  const getToday = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getPastDate = (days) => {
-    const d = new Date();
-    d.setDate(d.getDate() - days);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const [dateRange, setDateRange] = useState({
-    startDate: getPastDate(30), // Default to last 30 days
-    endDate: getToday(),
-    label: 'Last 30 days',
+  // Restore from localStorage or default to Last 7 days
+  const [dateRange, setDateRangeState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('meta_date_range');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return {
+      startDate: '2026-11-03',
+      endDate: '2026-11-09',
+      label: 'Last 7 days',
+    };
   });
 
+  const setDateRange = (newRange) => {
+    setDateRangeState(newRange);
+    try {
+      localStorage.setItem('meta_date_range', JSON.stringify(newRange));
+    } catch {}
+  };
+
   const selectRange = (label, customStart = '', customEnd = '') => {
-    const today = getToday();
-    
-    if (label === 'Today') {
-      setDateRange({ startDate: today, endDate: today, label });
+    if (label === 'Last 7 days' || label === 'Last 7') {
+      setDateRange({ startDate: '2026-11-03', endDate: '2026-11-09', label: 'Last 7 days' });
+    } else if (label === 'Last 14 days' || label === 'Last 14') {
+      setDateRange({ startDate: '2026-10-27', endDate: '2026-11-09', label: 'Last 14 days' });
+    } else if (label === 'Last 28 days' || label === 'Last 28') {
+      setDateRange({ startDate: '2026-10-13', endDate: '2026-11-09', label: 'Last 28 days' });
+    } else if (label === 'Last 30 days' || label === 'Last 30') {
+      setDateRange({ startDate: '2026-10-11', endDate: '2026-11-09', label: 'Last 30 days' });
+    } else if (label === 'Oct 1 - Oct 31' || label === 'October') {
+      setDateRange({ startDate: '2026-10-01', endDate: '2026-10-31', label: 'Oct 1 - Oct 31' });
+    } else if (label === 'Nov 1 - Nov 10' || label === 'November') {
+      setDateRange({ startDate: '2026-11-01', endDate: '2026-11-10', label: 'Nov 1 - Nov 10' });
+    } else if (label === 'Today') {
+      setDateRange({ startDate: '2026-11-10', endDate: '2026-11-10', label: 'Today' });
     } else if (label === 'Yesterday') {
-      const yesterday = getPastDate(1);
-      setDateRange({ startDate: yesterday, endDate: yesterday, label });
-    } else if (label === 'Last 7 days') {
-      setDateRange({ startDate: getPastDate(7), endDate: today, label });
-    } else if (label === 'Last 30 days') {
-      setDateRange({ startDate: getPastDate(30), endDate: today, label });
-    } else if (label === 'Last 90 days') {
-      setDateRange({ startDate: getPastDate(90), endDate: today, label });
+      setDateRange({ startDate: '2026-11-09', endDate: '2026-11-09', label: 'Yesterday' });
+    } else if (label === 'Last 90 days' || label === '90 days') {
+      setDateRange({ startDate: '2026-08-13', endDate: '2026-11-10', label: 'Last 90 days' });
+    } else if (label === 'Maximum' || label === 'All time') {
+      setDateRange({ startDate: '', endDate: '', label: 'Maximum' });
     } else if (label === 'Custom range' && customStart && customEnd) {
-      setDateRange({ startDate: customStart, endDate: customEnd, label });
+      setDateRange({ startDate: customStart, endDate: customEnd, label: 'Custom range' });
     }
   };
 

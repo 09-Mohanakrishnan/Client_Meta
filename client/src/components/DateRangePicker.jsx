@@ -8,7 +8,17 @@ const DateRangePicker = () => {
   const [customStart, setCustomStart] = useState(dateRange.startDate);
   const [customEnd, setCustomEnd] = useState(dateRange.endDate);
 
-  const presets = ['Today', 'Yesterday', 'Last 7 days', 'Last 30 days', 'Last 90 days', 'Custom range'];
+  const presets = [
+    'Last 7 days',
+    'Last 14 days',
+    'Last 28 days',
+    'Last 30 days',
+    'Oct 1 - Oct 31',
+    'Nov 1 - Nov 10',
+    'Last 90 days',
+    'Maximum',
+    'Custom range',
+  ];
 
   const handlePresetSelect = (preset) => {
     if (preset !== 'Custom range') { selectRange(preset); setShowDatePicker(false); }
@@ -22,8 +32,14 @@ const DateRangePicker = () => {
   };
 
   const formatLabel = () => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      return dateRange.label || 'Maximum';
+    }
     const start = new Date(dateRange.startDate);
     const end = new Date(dateRange.endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return dateRange.label || 'Select Date Range';
+    }
     const opts = { day: 'numeric', month: 'short', year: 'numeric' };
     const range = `${start.toLocaleDateString('en-GB', opts)} - ${end.toLocaleDateString('en-GB', opts)}`;
     return dateRange.label === 'Custom range' ? range : `${dateRange.label}: ${range}`;

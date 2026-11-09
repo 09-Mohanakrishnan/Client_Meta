@@ -29,6 +29,7 @@ const campaignSchema = new mongoose.Schema(
       type: String,
       enum: ['Daily', 'Lifetime'],
       default: 'Daily',
+      set: (v) => (!v || v === '0' || v === 0 || !['Daily', 'Lifetime'].includes(v) ? 'Daily' : v),
     },
     results: {
       type: Number,
@@ -82,6 +83,13 @@ const campaignSchema = new mongoose.Schema(
 
 // Index for text search
 campaignSchema.index({ name: 'text', campaignId: 'text' });
+
+campaignSchema.pre('validate', function(next) {
+  if (!this.budgetType || this.budgetType === '0' || this.budgetType === 0 || !['Daily', 'Lifetime'].includes(this.budgetType)) {
+    this.budgetType = 'Daily';
+  }
+  next();
+});
 
 const Campaign = mongoose.model('Campaign', campaignSchema);
 export default Campaign;

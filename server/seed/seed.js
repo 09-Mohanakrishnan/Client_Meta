@@ -6,6 +6,7 @@ import ColumnConfig from '../models/ColumnConfig.js';
 import Campaign from '../models/Campaign.js';
 import AdSet from '../models/AdSet.js';
 import Ad from '../models/Ad.js';
+import AdPerformance from '../models/AdPerformance.js';
 
 dotenv.config();
 
@@ -66,8 +67,9 @@ const defaultAdSetColumns = [
   { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
   { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
   { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
-  { key: 'startDate', label: 'Start Date', type: 'date', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
-  { key: 'endDate', label: 'End Date', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+  { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
+  { key: 'startDate', label: 'Start Date', type: 'date', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+  { key: 'endDate', label: 'End Date', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 13 },
 ].map(c => ({ ...c, entityType: 'adset' }));
 
 const defaultAdColumns = [
@@ -76,15 +78,17 @@ const defaultAdColumns = [
   { key: 'image', label: 'Image Preview', type: 'image', visible: true, editable: true, sortable: false, filterable: false, order: 2 },
   { key: 'delivery', label: 'Delivery', type: 'status', visible: true, editable: true, sortable: true, filterable: true, order: 3 },
   { key: 'adSetName', label: 'Ad Set Name', type: 'text', visible: true, editable: false, sortable: true, filterable: true, order: 4 },
-  { key: 'results', label: 'Results', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 5 },
-  { key: 'resultType', label: 'Result Type', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 6 },
-  { key: 'reach', label: 'Reach', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 7 },
-  { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
-  { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
-  { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
-  { key: 'qualityRanking', label: 'Quality Ranking', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
-  { key: 'engagementRateRanking', label: 'Engagement Rate', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
-  { key: 'conversionRanking', label: 'Conversion Rate', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 13 },
+  { key: 'budget', label: 'Budget', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 5 },
+  { key: 'results', label: 'Results', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 6 },
+  { key: 'resultType', label: 'Result Type', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 7 },
+  { key: 'reach', label: 'Reach', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 8 },
+  { key: 'impressions', label: 'Impressions', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 9 },
+  { key: 'costPerResult', label: 'Cost per Result', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 10 },
+  { key: 'amountSpent', label: 'Amount Spent', type: 'currency', visible: true, editable: true, sortable: true, filterable: true, order: 11 },
+  { key: 'frequency', label: 'Frequency', type: 'number', visible: true, editable: true, sortable: true, filterable: true, order: 12 },
+  { key: 'qualityRanking', label: 'Quality Ranking', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 13 },
+  { key: 'engagementRateRanking', label: 'Engagement Rate', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 14 },
+  { key: 'conversionRanking', label: 'Conversion Rate', type: 'text', visible: true, editable: true, sortable: true, filterable: true, order: 15 },
 ].map(c => ({ ...c, entityType: 'ad' }));
 
 const campaignsData = [
@@ -101,12 +105,61 @@ const campaignsData = [
 ];
 
 const mockImages = [
-  'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=150&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150&auto=format&fit=crop&q=60',
+  'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=80',
 ];
+
+const mockVideos = [
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+];
+
+// Helper to generate daily records for the last 90 days
+const createDailyRecords = (campaignId, adSetId = '', adId = '', totalResults, totalReach, totalImpressions, totalSpent) => {
+  const records = [];
+  const days = 90;
+  const now = new Date();
+
+  const baseResults = Math.max(1, Math.round(totalResults / days));
+  const baseReach = Math.max(10, Math.round(totalReach / days));
+  const baseImpressions = Math.max(15, Math.round(totalImpressions / days));
+  const baseSpent = parseFloat((totalSpent / days).toFixed(2));
+
+  for (let d = 0; d < days; d++) {
+    const dayDate = new Date(now);
+    dayDate.setDate(dayDate.getDate() - d);
+    const dateStr = dayDate.toISOString().split('T')[0];
+
+    // Natural daily variance (+/- 25%)
+    const variance = 0.75 + Math.random() * 0.5;
+    const dayResults = Math.round(baseResults * variance);
+    const dayReach = Math.round(baseReach * variance);
+    const dayImpressions = Math.round(baseImpressions * variance);
+    const daySpent = parseFloat((baseSpent * variance).toFixed(2));
+    const dayCost = dayResults > 0 ? parseFloat((daySpent / dayResults).toFixed(2)) : 0;
+    const dayFreq = dayReach > 0 ? parseFloat((dayImpressions / dayReach).toFixed(2)) : 1.0;
+
+    records.push({
+      campaignId,
+      adSetId,
+      adId,
+      isDaily: true,
+      date: dateStr,
+      results: dayResults,
+      resultType: 'Link clicks',
+      reach: dayReach,
+      impressions: dayImpressions,
+      costPerResult: dayCost,
+      amountSpent: daySpent,
+      frequency: dayFreq,
+    });
+  }
+  return records;
+};
 
 const seedDatabase = async () => {
   try {
@@ -118,6 +171,7 @@ const seedDatabase = async () => {
     await Campaign.deleteMany();
     await AdSet.deleteMany();
     await Ad.deleteMany();
+    await AdPerformance.deleteMany();
 
     console.log('Seeding default users...');
     for (const u of users) {
@@ -133,7 +187,9 @@ const seedDatabase = async () => {
     ]);
     console.log('Seeded column configs successfully.');
 
-    console.log('Seeding campaigns, adsets, and ads...');
+    console.log('Seeding campaigns, adsets, ads, and daily performance metrics...');
+    const allPerfRecords = [];
+
     for (let cIdx = 0; cIdx < campaignsData.length; cIdx++) {
       const cSeed = campaignsData[cIdx];
       const campaignId = `CAM_${(cIdx + 1).toString().padStart(2, '0')}`;
@@ -164,6 +220,9 @@ const seedDatabase = async () => {
         status: cSeed.status,
       });
 
+      // Campaign daily performance records
+      allPerfRecords.push(...createDailyRecords(campaign.campaignId, '', '', results, reach, impressions, amountSpent));
+
       // Seed 2 AdSets per Campaign
       for (let sIdx = 1; sIdx <= 2; sIdx++) {
         const adSetId = `SET_${campaignId.split('_')[1]}_${sIdx}`;
@@ -193,6 +252,9 @@ const seedDatabase = async () => {
           status: campaign.status,
         });
 
+        // AdSet daily performance records
+        allPerfRecords.push(...createDailyRecords(campaign.campaignId, adset.adSetId, '', setResults, setReach, setImpressions, setAmountSpent));
+
         // Seed 2 Ads per AdSet
         for (let aIdx = 1; aIdx <= 2; aIdx++) {
           const adId = `AD_${adSetId.split('_')[1]}_${adSetId.split('_')[2]}_${aIdx}`;
@@ -203,6 +265,8 @@ const seedDatabase = async () => {
           const adCost = adResults > 0 ? parseFloat((adSpent / adResults).toFixed(2)) : 0;
           const rankingOptions = ['Above average', 'Average', 'Below average (bottom 20%)', 'Below average (bottom 35%)'];
           const imgUrl = mockImages[(cIdx + sIdx + aIdx) % mockImages.length];
+          const isVideoAd = (cIdx % 2 === 0 && aIdx === 1) || cSeed.name.toLowerCase().includes('video');
+          const vidUrl = isVideoAd ? mockVideos[(cIdx + aIdx) % mockVideos.length] : '';
 
           await Ad.create({
             name: `${adset.name} - Creative ${aIdx}`,
@@ -225,9 +289,23 @@ const seedDatabase = async () => {
             conversionRanking: rankingOptions[Math.floor(Math.random() * rankingOptions.length)],
             status: adset.status,
             image: imgUrl,
+            imageUrl: imgUrl,
+            video: vidUrl,
+            videoUrl: vidUrl,
+            headline: `${campaign.name} - Special Promotion`,
+            primaryText: `Discover top exclusive deals with ${campaign.name}. High quality experience guaranteed. Click below to explore more!`,
           });
+
+          // Ad daily performance records
+          allPerfRecords.push(...createDailyRecords(campaign.campaignId, adset.adSetId, adId, adResults, adReach, adImpressions, adSpent));
         }
       }
+    }
+
+    if (allPerfRecords.length > 0) {
+      console.log(`Inserting ${allPerfRecords.length} daily performance records for the last 90 days...`);
+      await AdPerformance.insertMany(allPerfRecords);
+      console.log('Seeded daily performance data successfully.');
     }
 
     console.log('Seeded 10 campaigns, 20 ad sets, and 40 ads successfully.');
